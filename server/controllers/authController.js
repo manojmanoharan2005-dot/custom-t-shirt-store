@@ -28,9 +28,7 @@ const registerUser = async (req, res) => {
     }
 
     const trimmedName = name.trim();
-
     const normalizedEmail = email.trim().toLowerCase();
-
     const normalizedPhone = phone.trim();
 
     if (!trimmedName) {
@@ -39,7 +37,7 @@ const registerUser = async (req, res) => {
       });
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+**\\.**[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailRegex.test(normalizedEmail)) {
       return res.status(400).json({
