@@ -1,7 +1,10 @@
 import axios from "axios";
 
+const rawBaseUrl = import.meta.env.VITE_API_URL || "";
+const cleanBaseUrl = rawBaseUrl.replace(/\/+$/, "");
+
 const api = axios.create({
-  baseURL: `${import.meta.env.VITE_API_URL}/api`,
+  baseURL: `${cleanBaseUrl}/api`,
   timeout: 10000,
 });
 
@@ -10,7 +13,12 @@ api.interceptors.request.use(
     const token = localStorage.getItem("token");
 
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      if (config.headers?.set) {
+        config.headers.set("Authorization", `Bearer ${token}`);
+      } else {
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
 
     return config;

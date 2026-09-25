@@ -401,7 +401,7 @@ const Checkout = () => {
             await paymentService.verifyPayment({
               orderId: order._id,
               razorpayOrderId:
-                razorpayResponse.razorpay_order_id,
+                razorpayResponse.razorpay_order_id || paymentOrder.id,
               razorpayPaymentId:
                 razorpayResponse.razorpay_payment_id,
               razorpaySignature:

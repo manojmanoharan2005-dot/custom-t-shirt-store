@@ -205,11 +205,15 @@ const verifyPayment = async (req, res) => {
       });
     }
 
+    const secretKey = (
+      process.env.RAZORPAY_KEY_SECRET || ""
+    ).trim();
+
     const generatedSignature =
       crypto
         .createHmac(
           "sha256",
-          process.env.RAZORPAY_KEY_SECRET
+          secretKey
         )
         .update(
           `${razorpayOrderId}|${razorpayPaymentId}`
@@ -429,7 +433,9 @@ const verifyPayment = async (req, res) => {
     });
   } catch (error) {
     try {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
     } catch (transactionError) {
       console.error(
         "Transaction rollback error:",
