@@ -56,11 +56,11 @@ const Navbar = () => {
             width={210}
             height={76}
             className="
-              h-12
+              h-10
               w-auto
+              max-h-12
               object-contain
-              sm:h-16
-              lg:h-19
+              sm:h-12
             "
           />
         </Link>
