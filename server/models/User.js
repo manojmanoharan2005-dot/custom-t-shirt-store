@@ -33,34 +33,37 @@ const userSchema = new mongoose.Schema(
       default: "customer",
     },
 
-    addresses: [
-      {
-        fullName: {
-          type: String,
-          trim: true,
+    addresses: {
+      type: [
+        {
+          fullName: {
+            type: String,
+            trim: true,
+          },
+          phone: {
+            type: String,
+            trim: true,
+          },
+          addressLine: {
+            type: String,
+            trim: true,
+          },
+          city: {
+            type: String,
+            trim: true,
+          },
+          state: {
+            type: String,
+            trim: true,
+          },
+          pincode: {
+            type: String,
+            trim: true,
+          },
         },
-        phone: {
-          type: String,
-          trim: true,
-        },
-        addressLine: {
-          type: String,
-          trim: true,
-        },
-        city: {
-          type: String,
-          trim: true,
-        },
-        state: {
-          type: String,
-          trim: true,
-        },
-        pincode: {
-          type: String,
-          trim: true,
-        },
-      },
-    ],
+      ],
+      default: [],
+    },
   },
   {
     timestamps: true,

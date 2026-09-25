@@ -12,6 +12,10 @@ const getProfile = async (req, res) => {
       });
     }
 
+    if (!Array.isArray(user.addresses)) {
+      user.addresses = [];
+    }
+
     res.status(200).json({
       message: "Profile fetched successfully",
       user,
@@ -97,6 +101,10 @@ const addAddress = async (req, res) => {
       });
     }
 
+    if (!Array.isArray(user.addresses)) {
+      user.addresses = [];
+    }
+
     user.addresses.push({
       fullName: fullName.trim(),
       phone: phone.trim(),
@@ -136,6 +144,10 @@ const updateAddress = async (req, res) => {
       return res.status(404).json({
         message: "User not found",
       });
+    }
+
+    if (!Array.isArray(user.addresses)) {
+      user.addresses = [];
     }
 
     const address = user.addresses.id(
@@ -206,6 +218,10 @@ const deleteAddress = async (req, res) => {
       return res.status(404).json({
         message: "User not found",
       });
+    }
+
+    if (!Array.isArray(user.addresses)) {
+      user.addresses = [];
     }
 
     const address = user.addresses.id(
