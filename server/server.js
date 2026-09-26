@@ -24,7 +24,7 @@ const adminOrderRoutes = require("./routes/adminOrderRoutes");
 const adminUserRoutes = require("./routes/adminUserRoutes");
 
 const allowedOrigins = [
-  "https://customtee-woad.vercel.app",
+  "https://customtee-sable.vercel.app",
   process.env.CLIENT_URL,
   process.env.FRONTEND_URL,
   "http://localhost:5173",
@@ -35,6 +35,7 @@ const allowedOrigins = [
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
+
     if (
       allowedOrigins.includes(origin) ||
       origin.endsWith(".vercel.app") ||
@@ -42,11 +43,17 @@ const corsOptions = {
     ) {
       return callback(null, true);
     }
+
     return callback(null, true);
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+  ],
   optionsSuccessStatus: 200,
 };
 
@@ -61,9 +68,7 @@ app.use((req, res, next) => {
   res.on("finish", () => {
     const duration = Date.now() - start;
 
-    console.log(
-      `${req.method} ${req.originalUrl} - ${duration}ms`
-    );
+    console.log(`${req.method} ${req.originalUrl} - ${duration}ms`);
   });
 
   next();
@@ -87,15 +92,24 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/admin/orders", adminOrderRoutes);
 app.use("/api/admin/customers", adminUserRoutes);
 
+app.get("/api", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "CUSTOMTEE API is running",
+  });
+});
+
 app.get("/", (req, res) => {
   res.send("Custom T-Shirt Store API is running");
 });
 
 app.use((err, req, res, next) => {
   console.error("Global server error:", err.message || err);
+
   if (res.headersSent) {
     return next(err);
   }
+
   return res.status(err.status || 500).json({
     message: err.message || "Server error",
   });
