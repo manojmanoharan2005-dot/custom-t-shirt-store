@@ -1,6 +1,6 @@
 const Category = require("../models/Category");
 const Product = require("../models/Product");
-const cloudinary = require("../config/cloudinary");
+const uploadToCloudinary = require("../utils/cloudinaryUpload");
 
 const createCategory = async (req, res) => {
   try {
@@ -28,25 +28,10 @@ const createCategory = async (req, res) => {
         }
 
         if (req.file) {
-          const uploadResult =
-            await new Promise((resolve, reject) => {
-              const stream =
-                cloudinary.uploader.upload_stream(
-                  {
-                    folder: "categories",
-                    resource_type: "image",
-                  },
-                  (error, result) => {
-                    if (error) {
-                      reject(error);
-                    } else {
-                      resolve(result);
-                    }
-                  }
-                );
-
-              stream.end(req.file.buffer);
-            });
+          const uploadResult = await uploadToCloudinary(
+            req.file.buffer,
+            "custom-tshirt-store/categories"
+          );
 
           existingCategory.image =
             uploadResult.secure_url;
@@ -69,25 +54,10 @@ const createCategory = async (req, res) => {
     let imageUrl = "";
 
     if (req.file) {
-      const uploadResult =
-        await new Promise((resolve, reject) => {
-          const stream =
-            cloudinary.uploader.upload_stream(
-              {
-                folder: "categories",
-                resource_type: "image",
-              },
-              (error, result) => {
-                if (error) {
-                  reject(error);
-                } else {
-                  resolve(result);
-                }
-              }
-            );
-
-          stream.end(req.file.buffer);
-        });
+      const uploadResult = await uploadToCloudinary(
+        req.file.buffer,
+        "custom-tshirt-store/categories"
+      );
 
       imageUrl = uploadResult.secure_url;
     }
@@ -216,25 +186,10 @@ const updateCategory = async (req, res) => {
     }
 
     if (req.file) {
-      const uploadResult =
-        await new Promise((resolve, reject) => {
-          const stream =
-            cloudinary.uploader.upload_stream(
-              {
-                folder: "categories",
-                resource_type: "image",
-              },
-              (error, result) => {
-                if (error) {
-                  reject(error);
-                } else {
-                  resolve(result);
-                }
-              }
-            );
-
-          stream.end(req.file.buffer);
-        });
+      const uploadResult = await uploadToCloudinary(
+        req.file.buffer,
+        "custom-tshirt-store/categories"
+      );
 
       category.image =
         uploadResult.secure_url;
