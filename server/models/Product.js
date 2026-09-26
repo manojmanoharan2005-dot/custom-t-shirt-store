@@ -27,13 +27,6 @@ const productSchema = new mongoose.Schema(
       trim: true,
     },
 
-    slug: {
-      type: String,
-      unique: true,
-      index: true,
-      trim: true,
-    },
-
     description: {
       type: String,
       required: true,
@@ -88,10 +81,6 @@ const productSchema = new mongoose.Schema(
 productSchema.index({
   isActive: 1,
   createdAt: -1,
-});
-
-productSchema.index({
-  slug: 1,
 });
 
 const Product = mongoose.model(

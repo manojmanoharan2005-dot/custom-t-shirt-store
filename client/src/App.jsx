@@ -76,7 +76,7 @@ function App() {
                 />
 
                 <Route
-                  path="/products/:slug"
+                  path="/products/:id"
                   element={
                     <PublicCustomerRoute>
                       <ProductDetails />
