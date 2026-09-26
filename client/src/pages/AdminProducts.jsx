@@ -22,6 +22,9 @@ const availableColors = [
   "Yellow",
   "Grey",
   "Navy",
+  "Cream",
+  "Olive",
+  "Beige",
 ];
 
 const initialForm = {
