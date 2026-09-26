@@ -1537,7 +1537,7 @@ const AdminOrders = () => {
                                       item,
                                     })
                                   }
-                                  className="w-full rounded-full bg-purple-700 px-4 py-2.5 text-xs font-semibold text-white hover:bg-purple-800 transition-all shadow-sm"
+                                  className="w-full bg-black px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
                                 >
                                   View Final T-Shirt Preview
                                 </button>
