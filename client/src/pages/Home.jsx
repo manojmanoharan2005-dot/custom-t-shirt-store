@@ -7,6 +7,33 @@ import categoryService from "../services/categoryService";
 import ProductCard from "../components/ProductCard";
 import { getOptimizedImageUrl } from "../utils/cloudinary";
 
+const fetchWithRetry = async (fetcherFn, maxRetries = 2, delayMs = 1200) => {
+  let attempt = 0;
+
+  while (true) {
+    try {
+      return await fetcherFn();
+    } catch (error) {
+      attempt++;
+
+      const status = error.response?.status;
+      const isTransient =
+        !error.response ||
+        error.code === "ECONNABORTED" ||
+        error.message?.includes("timeout") ||
+        error.message?.includes("Network Error") ||
+        (status >= 500 && status < 600);
+
+      if (attempt <= maxRetries && isTransient) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        continue;
+      }
+
+      throw error;
+    }
+  }
+};
+
 const Home = () => {
   const [banners, setBanners] = useState([]);
   const [products, setProducts] = useState([]);
@@ -16,12 +43,17 @@ const Home = () => {
   const [productLoading, setProductLoading] = useState(true);
   const [categoryLoading, setCategoryLoading] = useState(true);
 
+  const [categoryError, setCategoryError] = useState(false);
+  const [productError, setProductError] = useState(false);
+
   useEffect(() => {
     let isMounted = true;
 
     const fetchBanners = async () => {
       try {
-        const response = await bannerService.getBanners({ limit: 1 });
+        const response = await fetchWithRetry(() =>
+          bannerService.getBanners({ limit: 1 })
+        );
         if (!isMounted) return;
 
         const bannerList = Array.isArray(response)
@@ -45,7 +77,9 @@ const Home = () => {
 
     const fetchProducts = async () => {
       try {
-        const response = await productService.getProducts({ limit: 8, view: "card" });
+        const response = await fetchWithRetry(() =>
+          productService.getProducts({ limit: 8, view: "card" })
+        );
         if (!isMounted) return;
 
         const productList = Array.isArray(response)
@@ -59,9 +93,13 @@ const Home = () => {
           : [];
 
         setProducts(productList);
+        setProductError(false);
       } catch (error) {
         console.error("Failed to load homepage products:", error);
-        if (isMounted) setProducts([]);
+        if (isMounted) {
+          setProducts([]);
+          setProductError(true);
+        }
       } finally {
         if (isMounted) setProductLoading(false);
       }
@@ -69,7 +107,9 @@ const Home = () => {
 
     const fetchCategories = async () => {
       try {
-        const response = await categoryService.getCategories();
+        const response = await fetchWithRetry(() =>
+          categoryService.getCategories()
+        );
         if (!isMounted) return;
 
         const categoryList = Array.isArray(response)
@@ -83,9 +123,13 @@ const Home = () => {
           : [];
 
         setCategories(categoryList);
+        setCategoryError(false);
       } catch (error) {
         console.error("Failed to load homepage categories:", error);
-        if (isMounted) setCategories([]);
+        if (isMounted) {
+          setCategories([]);
+          setCategoryError(true);
+        }
       } finally {
         if (isMounted) setCategoryLoading(false);
       }
@@ -401,6 +445,12 @@ const Home = () => {
                 );
               })}
             </div>
+          ) : categoryError ? (
+            <div className="mt-10 py-12 text-center">
+              <p className="text-sm text-black/45">
+                Unable to load categories right now.
+              </p>
+            </div>
           ) : (
             <div className="mt-10 py-12 text-center">
               <p className="text-sm text-black/45">
@@ -487,6 +537,19 @@ const Home = () => {
                   />
                 </div>
               ))}
+            </div>
+          ) : productError ? (
+            <div className="py-20 text-center">
+              <p className="text-sm text-black/45">
+                Unable to load products right now.
+              </p>
+
+              <Link
+                to="/products"
+                className="mt-4 inline-block text-sm font-medium underline underline-offset-4"
+              >
+                Browse products
+              </Link>
             </div>
           ) : (
             <div className="py-20 text-center">

@@ -663,50 +663,6 @@ const Checkout = () => {
 
               <div className="p-6">
                 <div className="grid gap-5 sm:grid-cols-2">
-                  {user?.addresses?.length > 0 && (
-                    <div className="sm:col-span-2">
-                      <label className="mb-2 block text-sm font-medium text-gray-800">
-                        Select Saved Address
-                      </label>
-
-                      <select
-                        onChange={(event) => {
-                          const value = event.target.value;
-
-                          if (value === "new") {
-                            setAddress({
-                              fullName: user?.name || "",
-                              phone: user?.phone || "",
-                              addressLine: "",
-                              city: "",
-                              state: "",
-                              pincode: "",
-                            });
-                          } else if (user?.addresses?.[value]) {
-                            const selected = user.addresses[value];
-
-                            setAddress({
-                              fullName: selected.fullName || "",
-                              phone: selected.phone || "",
-                              addressLine: selected.addressLine || "",
-                              city: selected.city || "",
-                              state: selected.state || "",
-                              pincode: selected.pincode || "",
-                            });
-                          }
-                        }}
-                        className="h-11 w-full border border-gray-300 bg-white px-3 text-sm outline-none focus:border-black"
-                      >
-                        {user.addresses.map((item, index) => (
-                          <option key={item._id || index} value={index}>
-                            {item.fullName} - {item.addressLine}, {item.city} ({item.pincode})
-                          </option>
-                        ))}
-                        <option value="new">+ Enter a new delivery address</option>
-                      </select>
-                    </div>
-                  )}
-
                   <div>
                     <label className="mb-2 block text-sm font-medium text-gray-800">
                       Full Name
