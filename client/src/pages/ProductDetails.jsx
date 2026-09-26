@@ -336,7 +336,9 @@ const ProductDetails = () => {
       return;
     }
 
-    navigate(`/customize/${id}`, {
+    const targetId = product?._id || productIdentifier;
+
+    navigate(`/customize/${targetId}`, {
       state: {
         size: selectedSize,
         color: selectedColor,
@@ -384,7 +386,9 @@ const ProductDetails = () => {
     if (
       pendingAction === "customize"
     ) {
-      navigate(`/customize/${id}`, {
+      const targetId = product?._id || productIdentifier;
+
+      navigate(`/customize/${targetId}`, {
         replace: true,
         state: {
           size: selectedSize,
@@ -404,7 +408,7 @@ const ProductDetails = () => {
     selectedSize,
     selectedColor,
     pendingAction,
-    id,
+    productIdentifier,
     navigate,
   ]);
 
