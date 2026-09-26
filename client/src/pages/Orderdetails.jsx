@@ -357,7 +357,7 @@ const OrderDetails = () => {
                                     }
                                     alt={
                                       item.customization.design.name ||
-                                      "Admin Design"
+                                      "Choosed Design"
                                     }
                                     className="h-10 w-10 border border-gray-200 bg-gray-50 object-contain"
                                   />
