@@ -264,9 +264,7 @@ const deleteCoupon = async (req, res) => {
       });
     }
 
-    coupon.isActive = false;
-
-    await coupon.save();
+    await coupon.deleteOne();
 
     return res.status(200).json({
       message:

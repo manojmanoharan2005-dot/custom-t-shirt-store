@@ -244,6 +244,10 @@ const AdminCoupons = () => {
         "Coupon deleted successfully."
       );
 
+      setCoupons((currentCoupons) =>
+        currentCoupons.filter((c) => c._id !== couponId)
+      );
+
       await loadCoupons();
     } catch (error) {
       console.error(
