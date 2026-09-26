@@ -45,6 +45,26 @@ const AdminOrders = () => {
   const [cancellationError, setCancellationError] =
     useState("");
 
+  const [previewImageModal, setPreviewImageModal] = useState(null);
+
+  const handleDownloadImage = async (url, fileName) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = fileName || "uploaded-design.png";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error("Failed to download image:", error);
+      window.open(url, "_blank");
+    }
+  };
+
   const loadOrders = async () => {
     try {
       setLoading(true);
@@ -1456,7 +1476,7 @@ const AdminOrders = () => {
                                       />
                                     </div>
 
-                                    <div>
+                                    <div className="flex flex-col justify-between">
                                       {customization.originalFileName && (
                                         <p className="text-sm">
                                           <span className="text-gray-500">
@@ -1467,6 +1487,37 @@ const AdminOrders = () => {
                                           </b>
                                         </p>
                                       )}
+
+                                      <div className="mt-3 flex flex-wrap gap-2">
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            setPreviewImageModal({
+                                              url: customization.imageUrl,
+                                              fileName:
+                                                customization.originalFileName ||
+                                                "Uploaded Design",
+                                            })
+                                          }
+                                          className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                                        >
+                                          Preview
+                                        </button>
+
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            handleDownloadImage(
+                                              customization.imageUrl,
+                                              customization.originalFileName ||
+                                                "uploaded-design.png"
+                                            )
+                                          }
+                                          className="rounded-lg bg-black px-3 py-1.5 text-xs font-semibold text-white hover:bg-gray-800"
+                                        >
+                                          Download
+                                        </button>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
@@ -1584,6 +1635,68 @@ const AdminOrders = () => {
                   Close
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {previewImageModal && (
+        <div
+          className="fixed inset-0 z-70 flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setPreviewImageModal(null)}
+        >
+          <div
+            className="w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b pb-4">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  Uploaded Design Preview
+                </h3>
+                <p className="text-xs text-gray-500">
+                  {previewImageModal.fileName}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPreviewImageModal(null)}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-lg text-gray-600 hover:bg-gray-200"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="my-6 flex max-h-[65vh] items-center justify-center overflow-hidden rounded-xl border bg-gray-50 p-4">
+              <img
+                src={previewImageModal.url}
+                alt={previewImageModal.fileName}
+                className="max-h-[60vh] max-w-full object-contain"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 border-t pt-4">
+              <button
+                type="button"
+                onClick={() =>
+                  handleDownloadImage(
+                    previewImageModal.url,
+                    previewImageModal.fileName
+                  )
+                }
+                className="rounded-xl bg-black px-5 py-2.5 text-sm font-semibold text-white hover:bg-gray-800"
+              >
+                Download Design
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPreviewImageModal(null)}
+                className="rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
