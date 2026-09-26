@@ -1122,8 +1122,8 @@ const Customizer = () => {
 
                   <input
                     type="range"
-                    min="0.5"
-                    max="2"
+                    min="0.2"
+                    max="3.0"
                     step="0.1"
                     value={designScale}
                     disabled={!selectedDesign && !userDesignPreview}

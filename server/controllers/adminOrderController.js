@@ -5,7 +5,12 @@ const getAllOrders = async (req, res) => {
     const orders = await Order.find()
       .populate("user", "name email phone")
       .populate("items.product", "name price images")
-      .populate("items.customization")
+      .populate({
+        path: "items.customization",
+        populate: {
+          path: "design",
+        },
+      })
       .sort({ createdAt: -1 });
 
     res.status(200).json({

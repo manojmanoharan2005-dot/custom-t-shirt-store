@@ -470,7 +470,8 @@ const AdminOrders = () => {
 
     return Boolean(
       customization.text ||
-        customization.design
+        customization.design ||
+        customization.imageUrl
     );
   };
 
