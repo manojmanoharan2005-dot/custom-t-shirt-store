@@ -1439,6 +1439,37 @@ const AdminOrders = () => {
                                   </div>
                                 </div>
                               )}
+
+                              {customization?.imageUrl && (
+                                <div className="mt-4 rounded-lg bg-white p-4">
+                                  <p className="mb-3 font-bold">
+                                    Uploaded Design
+                                  </p>
+
+                                  <div className="flex flex-col gap-4 sm:flex-row">
+                                    <div className="h-28 w-28 overflow-hidden rounded-lg border bg-gray-50">
+                                      <img
+                                        src={customization.imageUrl}
+                                        alt="Uploaded Design"
+                                        className="h-full w-full object-contain"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      {customization.originalFileName && (
+                                        <p className="text-sm">
+                                          <span className="text-gray-500">
+                                            File Name:
+                                          </span>{" "}
+                                          <b>
+                                            {customization.originalFileName}
+                                          </b>
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
 

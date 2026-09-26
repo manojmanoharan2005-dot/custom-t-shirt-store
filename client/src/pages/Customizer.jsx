@@ -45,8 +45,62 @@ const Customizer = () => {
     y: 65,
   });
 
+  const [userDesignFile, setUserDesignFile] = useState(null);
+  const [userDesignPreview, setUserDesignPreview] = useState("");
+  const [userDesignError, setUserDesignError] = useState("");
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (userDesignPreview) {
+        URL.revokeObjectURL(userDesignPreview);
+      }
+    };
+  }, [userDesignPreview]);
+
+  const handleUserDesignSelect = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const allowedMimeTypes = [
+      "image/png",
+      "image/jpeg",
+      "image/jpg",
+      "image/webp",
+    ];
+
+    if (!allowedMimeTypes.includes(file.type)) {
+      setUserDesignError("Please upload a PNG, JPG or WEBP image.");
+      showNotification("Please upload a PNG, JPG or WEBP image.", "error");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setUserDesignError("Image must be smaller than 5 MB.");
+      showNotification("Image must be smaller than 5 MB.", "error");
+      return;
+    }
+
+    if (userDesignPreview) {
+      URL.revokeObjectURL(userDesignPreview);
+    }
+
+    setUserDesignError("");
+    setUserDesignFile(file);
+    setUserDesignPreview(URL.createObjectURL(file));
+    setSelectedDesign(null);
+  };
+
+  const handleRemoveUserDesign = () => {
+    setUserDesignFile(null);
+    if (userDesignPreview) {
+      URL.revokeObjectURL(userDesignPreview);
+      setUserDesignPreview("");
+    }
+    setUserDesignError("");
+  };
 
   const loadData = async () => {
     try {
@@ -247,9 +301,9 @@ const Customizer = () => {
         return;
       }
 
-      if (!text && !selectedDesign) {
+      if (!text && !selectedDesign && !userDesignFile) {
         showNotification(
-          "Please add text or select a design.",
+          "Please add text, select a design, or upload your design.",
           "warning"
         );
         return;
@@ -258,55 +312,94 @@ const Customizer = () => {
       try {
         setSaving(true);
 
-        const customizationData = {
-          product: productId,
+        let customizationData;
+        if (userDesignFile) {
+          const formData = new FormData();
+          formData.append("product", productId);
+          formData.append("size", size);
+          formData.append("color", color);
+          formData.append("text", text);
+          formData.append("textColor", textColor);
+          formData.append(
+            "textPosition",
+            JSON.stringify({
+              x: Number(textPosition.x),
+              y: Number(textPosition.y),
+            })
+          );
+          formData.append("textSize", Number(textFontSize));
+          formData.append("textScale", Number(textScale));
+          formData.append("textRotation", Number(textRotation));
+          if (selectedDesign?._id) {
+            formData.append("design", selectedDesign._id);
+          }
+          formData.append(
+            "designPosition",
+            JSON.stringify({
+              x: Number(designPosition.x),
+              y: Number(designPosition.y),
+            })
+          );
+          formData.append(
+            "designSize",
+            JSON.stringify({ width: 100, height: 100 })
+          );
+          formData.append("designScale", Number(designScale));
+          formData.append("designRotation", Number(designRotation));
+          formData.append("userDesign", userDesignFile);
 
-          size,
+          customizationData = formData;
+        } else {
+          customizationData = {
+            product: productId,
 
-          color,
+            size,
 
-          text,
+            color,
 
-          textColor,
+            text,
 
-          textPosition: {
-            x: Number(textPosition.x),
-            y: Number(textPosition.y),
-          },
+            textColor,
 
-          textSize:
-            Number(textFontSize),
+            textPosition: {
+              x: Number(textPosition.x),
+              y: Number(textPosition.y),
+            },
 
-          textScale:
-            Number(textScale),
+            textSize:
+              Number(textFontSize),
 
-          textRotation:
-            Number(textRotation),
+            textScale:
+              Number(textScale),
 
-          design:
-            selectedDesign?._id ||
-            null,
+            textRotation:
+              Number(textRotation),
 
-          designPosition: {
-            x: Number(
-              designPosition.x
-            ),
-            y: Number(
-              designPosition.y
-            ),
-          },
+            design:
+              selectedDesign?._id ||
+              null,
 
-          designSize: {
-            width: 100,
-            height: 100,
-          },
+            designPosition: {
+              x: Number(
+                designPosition.x
+              ),
+              y: Number(
+                designPosition.y
+              ),
+            },
 
-          designScale:
-            Number(designScale),
+            designSize: {
+              width: 100,
+              height: 100,
+            },
 
-          designRotation:
-            Number(designRotation),
-        };
+            designScale:
+              Number(designScale),
+
+            designRotation:
+              Number(designRotation),
+          };
+        }
 
         const response =
           await customizationService.createCustomization(
@@ -455,7 +548,21 @@ const Customizer = () => {
                       </div>
                     )}
 
-                    {selectedDesign && (
+                    {userDesignPreview ? (
+                      <img
+                        src={userDesignPreview}
+                        alt="Uploaded Design"
+                        className="absolute h-auto max-w-[35%] object-contain"
+                        style={{
+                          left: `${designPosition.x}%`,
+                          top: `${designPosition.y}%`,
+                          transform:
+                            `translate(-50%, -50%) ` +
+                            `scale(${designScale}) ` +
+                            `rotate(${designRotation}deg)`,
+                        }}
+                      />
+                    ) : selectedDesign ? (
                       <img
                         src={
                           selectedDesign.image ||
@@ -475,7 +582,7 @@ const Customizer = () => {
                             `rotate(${designRotation}deg)`,
                         }}
                       />
-                    )}
+                    ) : null}
 
                     {customText && (
                       <div
@@ -527,8 +634,9 @@ const Customizer = () => {
                   </p>
 
                   <p className="mt-1 truncate text-sm font-semibold text-gray-900">
-                    {selectedDesign?.name ||
-                      "None"}
+                    {userDesignFile
+                      ? userDesignFile.name
+                      : selectedDesign?.name || "None"}
                   </p>
                 </div>
               </div>
@@ -817,6 +925,91 @@ const Customizer = () => {
               <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
                 <div>
                   <h2 className="text-base font-semibold text-gray-900">
+                    Upload Your Design
+                  </h2>
+
+                  <p className="mt-1 text-xs text-gray-500">
+                    Upload your own image to use as your design.
+                  </p>
+                </div>
+
+                {userDesignFile && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveUserDesign}
+                    className="text-xs text-red-600 hover:underline"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+
+              <div className="p-5">
+                {userDesignError && (
+                  <div className="mb-4 text-xs font-medium text-red-600">
+                    {userDesignError}
+                  </div>
+                )}
+
+                {userDesignPreview ? (
+                  <div className="flex items-center gap-4 border border-gray-200 bg-gray-50 p-3">
+                    <div className="h-16 w-16 flex-shrink-0 overflow-hidden border border-gray-200 bg-white p-1">
+                      <img
+                        src={userDesignPreview}
+                        alt="Uploaded Preview"
+                        className="h-full w-full object-contain"
+                      />
+                    </div>
+
+                    <div className="min-w-0 flex-1 text-xs">
+                      <p className="truncate font-medium text-gray-900">
+                        {userDesignFile?.name || "Uploaded Image"}
+                      </p>
+
+                      <p className="mt-0.5 text-gray-500">
+                        {userDesignFile?.size
+                          ? `${(userDesignFile.size / (1024 * 1024)).toFixed(2)} MB`
+                          : ""}
+                      </p>
+
+                      <label className="mt-1.5 inline-block cursor-pointer text-xs font-medium text-black hover:underline">
+                        Replace Image
+                        <input
+                          type="file"
+                          accept="image/png, image/jpeg, image/jpg, image/webp"
+                          onChange={handleUserDesignSelect}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="flex cursor-pointer flex-col items-center justify-center border border-dashed border-gray-300 bg-gray-50 py-6 text-center hover:border-gray-400">
+                      <span className="border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-800 hover:bg-gray-100">
+                        Choose Image
+                      </span>
+
+                      <span className="mt-2 text-xs text-gray-500">
+                        PNG, JPG or WEBP • Maximum 5 MB
+                      </span>
+
+                      <input
+                        type="file"
+                        accept="image/png, image/jpeg, image/jpg, image/webp"
+                        onChange={handleUserDesignSelect}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section className="border border-gray-200 bg-white">
+              <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+                <div>
+                  <h2 className="text-base font-semibold text-gray-900">
                     Choose a Design
                   </h2>
 
@@ -862,11 +1055,12 @@ const Customizer = () => {
                           <button
                             key={design._id}
                             type="button"
-                            onClick={() =>
-                              setSelectedDesign(
-                                design
-                              )
-                            }
+                            onClick={() => {
+                              setSelectedDesign(design);
+                              if (userDesignPreview) {
+                                handleRemoveUserDesign();
+                              }
+                            }}
                             className={`border p-2 text-left ${
                               selected
                                 ? "border-black"
@@ -903,7 +1097,7 @@ const Customizer = () => {
 
                 <div
                   className={`mt-6 ${
-                    selectedDesign
+                    selectedDesign || userDesignPreview
                       ? ""
                       : "opacity-50"
                   }`}
@@ -924,7 +1118,7 @@ const Customizer = () => {
                     max="2"
                     step="0.1"
                     value={designScale}
-                    disabled={!selectedDesign}
+                    disabled={!selectedDesign && !userDesignPreview}
                     onChange={(event) =>
                       setDesignScale(
                         Number(
@@ -938,7 +1132,7 @@ const Customizer = () => {
 
                 <div
                   className={`mt-5 ${
-                    selectedDesign
+                    selectedDesign || userDesignPreview
                       ? ""
                       : "opacity-50"
                   }`}
@@ -958,7 +1152,7 @@ const Customizer = () => {
                     min="-180"
                     max="180"
                     value={designRotation}
-                    disabled={!selectedDesign}
+                    disabled={!selectedDesign && !userDesignPreview}
                     onChange={(event) =>
                       setDesignRotation(
                         Number(
@@ -972,7 +1166,7 @@ const Customizer = () => {
 
                 <div
                   className={`mt-6 ${
-                    selectedDesign
+                    selectedDesign || userDesignPreview
                       ? ""
                       : "opacity-50"
                   }`}
@@ -1000,7 +1194,7 @@ const Customizer = () => {
                         value={
                           designPosition.x
                         }
-                        disabled={!selectedDesign}
+                        disabled={!selectedDesign && !userDesignPreview}
                         onChange={(event) =>
                           updateDesignPosition(
                             "x",
@@ -1029,7 +1223,7 @@ const Customizer = () => {
                         value={
                           designPosition.y
                         }
-                        disabled={!selectedDesign}
+                        disabled={!selectedDesign && !userDesignPreview}
                         onChange={(event) =>
                           updateDesignPosition(
                             "y",

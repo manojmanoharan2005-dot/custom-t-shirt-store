@@ -122,6 +122,24 @@ const customizationSchema = new mongoose.Schema(
       min: -180,
       max: 180,
     },
+
+    imageUrl: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    cloudinaryPublicId: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    originalFileName: {
+      type: String,
+      trim: true,
+      default: "",
+    },
   },
   {
     timestamps: true,

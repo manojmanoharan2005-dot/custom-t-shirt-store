@@ -3,9 +3,23 @@ const mongoose = require("mongoose");
 const Customization = require("../models/Customization");
 const Product = require("../models/Product");
 const Design = require("../models/Design");
+const uploadToCloudinary = require("../utils/cloudinaryUpload");
+const cloudinary = require("../config/cloudinary");
+
+const parseJSONIfNeeded = (val) => {
+  if (typeof val === "string") {
+    try {
+      return JSON.parse(val);
+    } catch (e) {
+      return val;
+    }
+  }
+  return val;
+};
 
 const isValidNumber = (value) => {
-  return typeof value === "number" && Number.isFinite(value);
+  const num = typeof value === "string" ? Number(value) : value;
+  return typeof num === "number" && Number.isFinite(num);
 };
 
 const validatePosition = (position, fieldName) => {
@@ -13,17 +27,22 @@ const validatePosition = (position, fieldName) => {
     return null;
   }
 
-  if (!position || typeof position !== "object") {
+  const parsedPosition = parseJSONIfNeeded(position);
+
+  if (!parsedPosition || typeof parsedPosition !== "object") {
     return `${fieldName} must be an object`;
   }
 
-  const { x, y } = position;
+  const { x, y } = parsedPosition;
 
   if (!isValidNumber(x) || !isValidNumber(y)) {
     return `${fieldName} x and y must be valid numbers`;
   }
 
-  if (x < 0 || x > 100 || y < 0 || y > 100) {
+  const numX = Number(x);
+  const numY = Number(y);
+
+  if (numX < 0 || numX > 100 || numY < 0 || numY > 100) {
     return `${fieldName} x and y must be between 0 and 100`;
   }
 
@@ -35,21 +54,26 @@ const validateDesignSize = (designSize) => {
     return null;
   }
 
-  if (!designSize || typeof designSize !== "object") {
+  const parsedSize = parseJSONIfNeeded(designSize);
+
+  if (!parsedSize || typeof parsedSize !== "object") {
     return "Design size must be an object";
   }
 
-  const { width, height } = designSize;
+  const { width, height } = parsedSize;
 
   if (!isValidNumber(width) || !isValidNumber(height)) {
     return "Design size width and height must be valid numbers";
   }
 
+  const numW = Number(width);
+  const numH = Number(height);
+
   if (
-    width < 1 ||
-    width > 200 ||
-    height < 1 ||
-    height > 200
+    numW < 1 ||
+    numW > 200 ||
+    numH < 1 ||
+    numH > 200
   ) {
     return "Design size must be between 1 and 200";
   }
@@ -68,25 +92,26 @@ const isProductColorAvailable = (product, color) => {
 };
 
 const createCustomization = async (req, res) => {
+  let uploadedPublicId = null;
+
   try {
-    const {
-      product,
-      size,
-      color,
+    const rawBody = req.body || {};
+    const product = rawBody.product;
+    const size = rawBody.size;
+    const color = rawBody.color;
 
-      text,
-      textColor,
-      textPosition,
-      textSize,
-      textScale,
-      textRotation,
+    const text = rawBody.text;
+    const textColor = rawBody.textColor;
+    const textPosition = parseJSONIfNeeded(rawBody.textPosition);
+    const textSize = rawBody.textSize !== undefined ? Number(rawBody.textSize) : undefined;
+    const textScale = rawBody.textScale !== undefined ? Number(rawBody.textScale) : undefined;
+    const textRotation = rawBody.textRotation !== undefined ? Number(rawBody.textRotation) : undefined;
 
-      design,
-      designPosition,
-      designSize,
-      designScale,
-      designRotation,
-    } = req.body;
+    const design = rawBody.design;
+    const designPosition = parseJSONIfNeeded(rawBody.designPosition);
+    const designSize = parseJSONIfNeeded(rawBody.designSize);
+    const designScale = rawBody.designScale !== undefined ? Number(rawBody.designScale) : undefined;
+    const designRotation = rawBody.designRotation !== undefined ? Number(rawBody.designRotation) : undefined;
 
     if (!product || !size || !color) {
       return res.status(400).json({
@@ -107,6 +132,41 @@ const createCustomization = async (req, res) => {
       return res.status(400).json({
         message: "Invalid design ID",
       });
+    }
+
+    let imageUrl = "";
+    let cloudinaryPublicId = "";
+    let originalFileName = "";
+
+    if (req.file) {
+      const allowedMimeTypes = [
+        "image/png",
+        "image/jpeg",
+        "image/jpg",
+        "image/webp",
+      ];
+
+      if (!allowedMimeTypes.includes(req.file.mimetype)) {
+        return res.status(400).json({
+          message: "Please upload a PNG, JPG or WEBP image.",
+        });
+      }
+
+      if (req.file.size > 5 * 1024 * 1024) {
+        return res.status(400).json({
+          message: "Image must be smaller than 5 MB.",
+        });
+      }
+
+      const uploaded = await uploadToCloudinary(
+        req.file.buffer,
+        "custom-tshirt-store/user-designs"
+      );
+
+      imageUrl = uploaded.secure_url;
+      cloudinaryPublicId = uploaded.public_id;
+      uploadedPublicId = uploaded.public_id;
+      originalFileName = req.file.originalname || "user-design";
     }
 
     const productData = await Product.findOne({
@@ -277,6 +337,12 @@ const createCustomization = async (req, res) => {
         designScale,
 
         designRotation,
+
+        imageUrl,
+
+        cloudinaryPublicId,
+
+        originalFileName,
       });
 
     return res.status(201).json({
@@ -285,6 +351,10 @@ const createCustomization = async (req, res) => {
       customization,
     });
   } catch (error) {
+    if (uploadedPublicId) {
+      cloudinary.uploader.destroy(uploadedPublicId).catch(() => {});
+    }
+
     console.error(
       "Create customization error:",
       error.message
@@ -336,6 +406,8 @@ const getCustomizationById = async (req, res) => {
 };
 
 const updateCustomization = async (req, res) => {
+  let uploadedPublicId = null;
+
   try {
     const { id } = req.params;
 
@@ -357,23 +429,53 @@ const updateCustomization = async (req, res) => {
       });
     }
 
-    const {
-      size,
-      color,
+    const rawBody = req.body || {};
+    const size = rawBody.size;
+    const color = rawBody.color;
 
-      text,
-      textColor,
-      textPosition,
-      textSize,
-      textScale,
-      textRotation,
+    const text = rawBody.text;
+    const textColor = rawBody.textColor;
+    const textPosition = parseJSONIfNeeded(rawBody.textPosition);
+    const textSize = rawBody.textSize !== undefined ? Number(rawBody.textSize) : undefined;
+    const textScale = rawBody.textScale !== undefined ? Number(rawBody.textScale) : undefined;
+    const textRotation = rawBody.textRotation !== undefined ? Number(rawBody.textRotation) : undefined;
 
-      design,
-      designPosition,
-      designSize,
-      designScale,
-      designRotation,
-    } = req.body;
+    const design = rawBody.design;
+    const designPosition = parseJSONIfNeeded(rawBody.designPosition);
+    const designSize = parseJSONIfNeeded(rawBody.designSize);
+    const designScale = rawBody.designScale !== undefined ? Number(rawBody.designScale) : undefined;
+    const designRotation = rawBody.designRotation !== undefined ? Number(rawBody.designRotation) : undefined;
+
+    if (req.file) {
+      const allowedMimeTypes = [
+        "image/png",
+        "image/jpeg",
+        "image/jpg",
+        "image/webp",
+      ];
+
+      if (!allowedMimeTypes.includes(req.file.mimetype)) {
+        return res.status(400).json({
+          message: "Please upload a PNG, JPG or WEBP image.",
+        });
+      }
+
+      if (req.file.size > 5 * 1024 * 1024) {
+        return res.status(400).json({
+          message: "Image must be smaller than 5 MB.",
+        });
+      }
+
+      const uploaded = await uploadToCloudinary(
+        req.file.buffer,
+        "custom-tshirt-store/user-designs"
+      );
+
+      customization.imageUrl = uploaded.secure_url;
+      customization.cloudinaryPublicId = uploaded.public_id;
+      uploadedPublicId = uploaded.public_id;
+      customization.originalFileName = req.file.originalname || "user-design";
+    }
 
     const product =
       await Product.findOne({
@@ -604,6 +706,10 @@ const updateCustomization = async (req, res) => {
       customization: updatedCustomization,
     });
   } catch (error) {
+    if (uploadedPublicId) {
+      cloudinary.uploader.destroy(uploadedPublicId).catch(() => {});
+    }
+
     console.error(
       "Update customization error:",
       error.message

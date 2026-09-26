@@ -292,6 +292,19 @@ const Cart = () => {
                                 Custom design added
                               </p>
                             )}
+
+                            {item.customization.imageUrl && (
+                              <div className="mt-2 flex items-center gap-2">
+                                <img
+                                  src={item.customization.imageUrl}
+                                  alt="Uploaded Design"
+                                  className="h-10 w-10 border border-gray-200 bg-gray-50 object-contain"
+                                />
+                                <span className="text-xs text-gray-500">
+                                  User Uploaded Design
+                                </span>
+                              </div>
+                            )}
                           </div>
                         )}
 
