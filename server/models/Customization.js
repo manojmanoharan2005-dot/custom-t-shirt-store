@@ -184,6 +184,37 @@ const customizationSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+
+    texts: [
+      {
+        id: { type: String },
+        text: { type: String, trim: true, maxlength: 100 },
+        fontFamily: { type: String, default: "Inter", trim: true },
+        textColor: { type: String, default: "#000000", trim: true },
+        fontSize: { type: Number, default: 24, min: 12, max: 60 },
+        textScale: { type: Number, default: 1, min: 0.5, max: 2 },
+        textRotation: { type: Number, default: 0, min: -180, max: 180 },
+        textPosition: {
+          x: { type: Number, default: 50, min: 0, max: 100 },
+          y: { type: Number, default: 50, min: 0, max: 100 },
+        },
+      },
+    ],
+
+    userDesigns: [
+      {
+        id: { type: String },
+        imageUrl: { type: String, trim: true, default: "" },
+        cloudinaryPublicId: { type: String, trim: true, default: "" },
+        originalFileName: { type: String, trim: true, default: "" },
+        userDesignPosition: {
+          x: { type: Number, default: 50, min: 0, max: 100 },
+          y: { type: Number, default: 40, min: 0, max: 100 },
+        },
+        userDesignScale: { type: Number, default: 1, min: 0.2, max: 3 },
+        userDesignRotation: { type: Number, default: 0, min: -180, max: 180 },
+      },
+    ],
   },
   {
     timestamps: true,

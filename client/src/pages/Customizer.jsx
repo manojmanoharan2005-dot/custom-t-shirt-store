@@ -13,6 +13,19 @@ import customizationService from "../services/customizationService";
 import cartService from "../services/cartService";
 import { useNotification } from "../context/NotificationContext";
 
+const FONT_OPTIONS = [
+  "Inter",
+  "Arial",
+  "Roboto",
+  "Poppins",
+  "Montserrat",
+  "Oswald",
+  "Bebas Neue",
+  "Playfair Display",
+  "Georgia",
+  "Courier New",
+];
+
 const Customizer = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -25,17 +38,22 @@ const Customizer = () => {
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
 
-  const [customText, setCustomText] = useState("");
-  const [textColor, setTextColor] = useState("#000000");
-  const [textFontSize, setTextFontSize] = useState(24);
-  const [textScale, setTextScale] = useState(1);
-  const [textRotation, setTextRotation] = useState(0);
+  // Dynamic Text Elements State
+  const [texts, setTexts] = useState([
+    {
+      id: "text-1",
+      text: "",
+      fontFamily: "Inter",
+      textColor: "#000000",
+      fontSize: 24,
+      scale: 1,
+      rotation: 0,
+      positionX: 50,
+      positionY: 50,
+    },
+  ]);
 
-  const [textPosition, setTextPosition] = useState({
-    x: 50,
-    y: 50,
-  });
-
+  // Admin Design State
   const [selectedDesign, setSelectedDesign] = useState(null);
   const [adminDesignScale, setAdminDesignScale] = useState(1);
   const [adminDesignPosition, setAdminDesignPosition] = useState({
@@ -43,29 +61,101 @@ const Customizer = () => {
     y: 65,
   });
 
-  const [upload1, setUpload1] = useState({ file: null, preview: "" });
-  const [upload2, setUpload2] = useState({ file: null, preview: "" });
-  const [activeUploadedSlot, setActiveUploadedSlot] = useState(null);
-
-  const [userDesignScale, setUserDesignScale] = useState(1);
-  const [userDesignPosition, setUserDesignPosition] = useState({
-    x: 50,
-    y: 35,
-  });
+  // Dynamic User Uploaded Designs State
+  const [userDesigns, setUserDesigns] = useState([
+    {
+      id: "design-1",
+      file: null,
+      preview: "",
+      scale: 1,
+      rotation: 0,
+      positionX: 50,
+      positionY: 35,
+    },
+  ]);
 
   const [userDesignError, setUserDesignError] = useState("");
-
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     return () => {
-      if (upload1.preview) URL.revokeObjectURL(upload1.preview);
-      if (upload2.preview) URL.revokeObjectURL(upload2.preview);
+      userDesigns.forEach((ud) => {
+        if (ud.preview) {
+          URL.revokeObjectURL(ud.preview);
+        }
+      });
     };
-  }, []);
+  }, [userDesigns]);
 
-  const handleUserDesignSelect = (event, slotIndex) => {
+  // Handler for adding dynamic text element
+  const handleAddText = () => {
+    const newId = `text-${Date.now()}`;
+    setTexts((prev) => [
+      ...prev,
+      {
+        id: newId,
+        text: "",
+        fontFamily: "Inter",
+        textColor: "#000000",
+        fontSize: 24,
+        scale: 1,
+        rotation: 0,
+        positionX: 50,
+        positionY: Math.min(80, 40 + prev.length * 10),
+      },
+    ]);
+  };
+
+  // Handler for removing a text element
+  const handleRemoveText = (textId) => {
+    setTexts((prev) => {
+      const filtered = prev.filter((item) => item.id !== textId);
+      if (filtered.length === 0) {
+        return [
+          {
+            id: `text-${Date.now()}`,
+            text: "",
+            fontFamily: "Inter",
+            textColor: "#000000",
+            fontSize: 24,
+            scale: 1,
+            rotation: 0,
+            positionX: 50,
+            positionY: 50,
+          },
+        ];
+      }
+      return filtered;
+    });
+  };
+
+  // Handler for updating a text element field
+  const updateTextItem = (textId, field, value) => {
+    setTexts((prev) =>
+      prev.map((item) => (item.id === textId ? { ...item, [field]: value } : item))
+    );
+  };
+
+  // Handler for adding dynamic user design item
+  const handleAddUserDesign = () => {
+    const newId = `design-${Date.now()}`;
+    setUserDesigns((prev) => [
+      ...prev,
+      {
+        id: newId,
+        file: null,
+        preview: "",
+        scale: 1,
+        rotation: 0,
+        positionX: 50,
+        positionY: Math.min(75, 30 + prev.length * 10),
+      },
+    ]);
+  };
+
+  // Handler for selecting an image file for a user design item
+  const handleUserDesignFileSelect = (event, id) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -90,42 +180,50 @@ const Customizer = () => {
 
     const newPreview = URL.createObjectURL(file);
 
-    if (slotIndex === 1) {
-      if (upload1.preview) URL.revokeObjectURL(upload1.preview);
-      setUpload1({ file, preview: newPreview });
-      setActiveUploadedSlot(1);
-    } else {
-      if (upload2.preview) URL.revokeObjectURL(upload2.preview);
-      setUpload2({ file, preview: newPreview });
-      setActiveUploadedSlot(2);
-    }
+    setUserDesigns((prev) =>
+      prev.map((item) => {
+        if (item.id === id) {
+          if (item.preview) URL.revokeObjectURL(item.preview);
+          return { ...item, file, preview: newPreview };
+        }
+        return item;
+      })
+    );
 
     setUserDesignError("");
   };
 
-  const handleRemoveUserDesign = (slotIndex) => {
-    if (slotIndex === 1) {
-      if (upload1.preview) URL.revokeObjectURL(upload1.preview);
-      setUpload1({ file: null, preview: "" });
-      if (activeUploadedSlot === 1) {
-        setActiveUploadedSlot(null);
+  // Handler for removing a user design item
+  const handleRemoveUserDesignItem = (id) => {
+    setUserDesigns((prev) => {
+      const itemToRemove = prev.find((item) => item.id === id);
+      if (itemToRemove && itemToRemove.preview) {
+        URL.revokeObjectURL(itemToRemove.preview);
       }
-    } else {
-      if (upload2.preview) URL.revokeObjectURL(upload2.preview);
-      setUpload2({ file: null, preview: "" });
-      if (activeUploadedSlot === 2) {
-        setActiveUploadedSlot(null);
+      const filtered = prev.filter((item) => item.id !== id);
+      if (filtered.length === 0) {
+        return [
+          {
+            id: `design-${Date.now()}`,
+            file: null,
+            preview: "",
+            scale: 1,
+            rotation: 0,
+            positionX: 50,
+            positionY: 35,
+          },
+        ];
       }
-    }
+      return filtered;
+    });
     setUserDesignError("");
   };
 
-  const selectUploadAsActive = (slotIndex) => {
-    if (slotIndex === 1 && upload1.file) {
-      setActiveUploadedSlot(1);
-    } else if (slotIndex === 2 && upload2.file) {
-      setActiveUploadedSlot(2);
-    }
+  // Handler for updating a user design item field
+  const updateUserDesignItem = (id, field, value) => {
+    setUserDesigns((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, [field]: value } : item))
+    );
   };
 
   const selectAdminDesignAsActive = (design) => {
@@ -136,11 +234,10 @@ const Customizer = () => {
     try {
       setLoading(true);
 
-      const [productResponse, designResponse] =
-        await Promise.all([
-          productService.getProductById(id),
-          designService.getDesigns(),
-        ]);
+      const [productResponse, designResponse] = await Promise.all([
+        productService.getProductById(id),
+        designService.getDesigns(),
+      ]);
 
       const productData = productResponse?.product;
 
@@ -149,17 +246,13 @@ const Customizer = () => {
       }
 
       if (!productData.customizable) {
-        throw new Error(
-          "This product cannot be customized."
-        );
+        throw new Error("This product cannot be customized.");
       }
 
       setProduct(productData);
       setDesigns(designResponse?.designs || []);
 
-      const variants = Array.isArray(
-        productData.variants
-      )
+      const variants = Array.isArray(productData.variants)
         ? productData.variants
         : [];
 
@@ -169,53 +262,33 @@ const Customizer = () => {
 
       const passedSize = location.state?.size;
 
-      if (
-        passedSize &&
-        productData.sizes?.includes(passedSize)
-      ) {
+      if (passedSize && productData.sizes?.includes(passedSize)) {
         setSelectedSize(passedSize);
       } else {
-        setSelectedSize(
-          productData.sizes?.[0] || ""
-        );
+        setSelectedSize(productData.sizes?.[0] || "");
       }
 
-      const passedColor =
-        location.state?.color?.trim();
+      const passedColor = location.state?.color?.trim();
 
       if (passedColor) {
-        const matchedColor =
-          availableColors.find(
-            (color) =>
-              color.toLowerCase() ===
-              passedColor.toLowerCase()
-          );
+        const matchedColor = availableColors.find(
+          (color) => color.toLowerCase() === passedColor.toLowerCase()
+        );
 
         if (matchedColor) {
           setSelectedColor(matchedColor);
-        } else if (
-          availableColors.length > 0
-        ) {
-          setSelectedColor(
-            availableColors[0]
-          );
+        } else if (availableColors.length > 0) {
+          setSelectedColor(availableColors[0]);
         } else {
           setSelectedColor("");
         }
-      } else if (
-        availableColors.length > 0
-      ) {
-        setSelectedColor(
-          availableColors[0]
-        );
+      } else if (availableColors.length > 0) {
+        setSelectedColor(availableColors[0]);
       } else {
         setSelectedColor("");
       }
     } catch (error) {
-      console.error(
-        "Failed to load customizer:",
-        error
-      );
+      console.error("Failed to load customizer:", error);
 
       showNotification(
         error.response?.data?.message ||
@@ -232,51 +305,22 @@ const Customizer = () => {
     loadData();
   }, [id]);
 
-  const selectedVariant =
-    product?.variants?.find(
-      (variant) =>
-        variant?.color
-          ?.trim()
-          .toLowerCase() ===
-        selectedColor
-          ?.trim()
-          .toLowerCase()
-    );
+  const selectedVariant = product?.variants?.find(
+    (variant) =>
+      variant?.color?.trim().toLowerCase() ===
+      selectedColor?.trim().toLowerCase()
+  );
 
   const previewImage =
-    selectedColor &&
-    selectedVariant?.image
+    selectedColor && selectedVariant?.image
       ? selectedVariant.image
       : product?.images?.[0] ||
         product?.variants?.[0]?.image ||
         "";
 
-  const availableColors = Array.isArray(
-    product?.variants
-  )
-    ? product.variants
-        .map((variant) =>
-          variant?.color?.trim()
-        )
-        .filter(Boolean)
+  const availableColors = Array.isArray(product?.variants)
+    ? product.variants.map((variant) => variant?.color?.trim()).filter(Boolean)
     : [];
-
-  const updateTextPosition = (
-    field,
-    value
-  ) => {
-    setTextPosition((current) => ({
-      ...current,
-      [field]: Number(value),
-    }));
-  };
-
-  const updateUserDesignPosition = (field, value) => {
-    setUserDesignPosition((current) => ({
-      ...current,
-      [field]: Number(value),
-    }));
-  };
 
   const updateAdminDesignPosition = (field, value) => {
     setAdminDesignPosition((current) => ({
@@ -285,30 +329,27 @@ const Customizer = () => {
     }));
   };
 
-  const activeUpload =
-    activeUploadedSlot === 1
-      ? upload1
-      : activeUploadedSlot === 2
-        ? upload2
-        : null;
-
-  const activeUserDesignPreview = activeUpload?.preview || "";
-  const activeUserDesignFile = activeUpload?.file || null;
-
+  const uploadedFilesCount = userDesigns.filter((ud) => ud.file).length;
   let activeDesignName = "None";
-  if (activeUserDesignFile && selectedDesign) {
-    activeDesignName = `${activeUserDesignFile.name} + ${selectedDesign.name}`;
-  } else if (activeUserDesignFile) {
-    activeDesignName = activeUserDesignFile.name;
-  } else if (selectedDesign) {
-    activeDesignName = selectedDesign.name || "Admin Design";
+  const parts = [];
+  if (uploadedFilesCount > 0) {
+    parts.push(
+      `${uploadedFilesCount} Custom ${
+        uploadedFilesCount === 1 ? "Upload" : "Uploads"
+      }`
+    );
+  }
+  if (selectedDesign) {
+    parts.push(selectedDesign.name || "Admin Design");
+  }
+  if (parts.length > 0) {
+    activeDesignName = parts.join(" + ");
   }
 
   const handleSaveAndAddToCart = async () => {
     const productId = product?._id || id;
     const size = selectedSize || product?.sizes?.[0] || "";
     const color = selectedColor || availableColors?.[0] || "";
-    const text = customText.trim();
 
     if (!productId) {
       showNotification("Product information is missing.", "error");
@@ -330,7 +371,12 @@ const Customizer = () => {
       return;
     }
 
-    if (!text && !selectedDesign && !activeUserDesignFile) {
+    const hasText = texts.some((t) => t.text.trim().length > 0);
+    const uploadedItemsWithFile = userDesigns.filter((ud) => ud.file !== null);
+    const hasUserDesign = uploadedItemsWithFile.length > 0;
+    const hasAdminDesign = Boolean(selectedDesign);
+
+    if (!hasText && !hasUserDesign && !hasAdminDesign) {
       showNotification(
         "Please add text, select a design, or upload your design.",
         "warning"
@@ -341,37 +387,70 @@ const Customizer = () => {
     try {
       setSaving(true);
 
+      const validTexts = texts.filter((t) => t.text.trim().length > 0);
+      const firstTextObj = validTexts[0] || texts[0] || {};
+
       let customizationData;
-      if (activeUserDesignFile) {
+
+      if (hasUserDesign) {
         const formData = new FormData();
         formData.append("product", productId);
         formData.append("size", size);
         formData.append("color", color);
-        formData.append("text", text);
-        formData.append("textColor", textColor);
+
+        // Multiple text support
+        formData.append("texts", JSON.stringify(texts));
+        formData.append("text", firstTextObj.text ? firstTextObj.text.trim() : "");
+        formData.append("fontFamily", firstTextObj.fontFamily || "Inter");
+        formData.append("textColor", firstTextObj.textColor || "#000000");
         formData.append(
           "textPosition",
           JSON.stringify({
-            x: Number(textPosition.x),
-            y: Number(textPosition.y),
+            x: Number(firstTextObj.positionX || 50),
+            y: Number(firstTextObj.positionY || 50),
           })
         );
-        formData.append("textSize", Number(textFontSize));
-        formData.append("textScale", Number(textScale));
-        formData.append("textRotation", Number(textRotation));
+        formData.append("textSize", Number(firstTextObj.fontSize || 24));
+        formData.append("textScale", Number(firstTextObj.scale || 1));
+        formData.append("textRotation", Number(firstTextObj.rotation || 0));
+
+        // Multiple user designs metadata & file uploads
+        const userDesignsMeta = uploadedItemsWithFile.map((ud, idx) => ({
+          id: ud.id,
+          fieldName: `userDesignFile_${idx}`,
+          userDesignPosition: {
+            x: Number(ud.positionX),
+            y: Number(ud.positionY),
+          },
+          userDesignScale: Number(ud.scale),
+          userDesignRotation: Number(ud.rotation),
+        }));
+
+        formData.append("userDesignsMeta", JSON.stringify(userDesignsMeta));
+
+        uploadedItemsWithFile.forEach((ud, idx) => {
+          formData.append(`userDesignFile_${idx}`, ud.file);
+        });
+
+        // First uploaded file as userDesign for single-file compatibility
+        if (uploadedItemsWithFile[0]) {
+          formData.append("userDesign", uploadedItemsWithFile[0].file);
+          formData.append(
+            "userDesignPosition",
+            JSON.stringify({
+              x: Number(uploadedItemsWithFile[0].positionX),
+              y: Number(uploadedItemsWithFile[0].positionY),
+            })
+          );
+          formData.append(
+            "userDesignScale",
+            Number(uploadedItemsWithFile[0].scale)
+          );
+        }
 
         if (selectedDesign?._id) {
           formData.append("design", selectedDesign._id);
         }
-
-        formData.append(
-          "userDesignPosition",
-          JSON.stringify({
-            x: Number(userDesignPosition.x),
-            y: Number(userDesignPosition.y),
-          })
-        );
-        formData.append("userDesignScale", Number(userDesignScale));
 
         formData.append(
           "adminDesignPosition",
@@ -381,7 +460,6 @@ const Customizer = () => {
           })
         );
         formData.append("adminDesignScale", Number(adminDesignScale));
-
         formData.append(
           "designPosition",
           JSON.stringify({
@@ -395,7 +473,6 @@ const Customizer = () => {
         );
         formData.append("designScale", Number(adminDesignScale));
         formData.append("designRotation", Number(0));
-        formData.append("userDesign", activeUserDesignFile);
 
         customizationData = formData;
       } else {
@@ -403,21 +480,18 @@ const Customizer = () => {
           product: productId,
           size,
           color,
-          text,
-          textColor,
+          texts,
+          text: firstTextObj.text ? firstTextObj.text.trim() : "",
+          fontFamily: firstTextObj.fontFamily || "Inter",
+          textColor: firstTextObj.textColor || "#000000",
           textPosition: {
-            x: Number(textPosition.x),
-            y: Number(textPosition.y),
+            x: Number(firstTextObj.positionX || 50),
+            y: Number(firstTextObj.positionY || 50),
           },
-          textSize: Number(textFontSize),
-          textScale: Number(textScale),
-          textRotation: Number(textRotation),
+          textSize: Number(firstTextObj.fontSize || 24),
+          textScale: Number(firstTextObj.scale || 1),
+          textRotation: Number(firstTextObj.rotation || 0),
           design: selectedDesign?._id || null,
-          userDesignPosition: {
-            x: Number(userDesignPosition.x),
-            y: Number(userDesignPosition.y),
-          },
-          userDesignScale: Number(userDesignScale),
           adminDesignPosition: {
             x: Number(adminDesignPosition.x),
             y: Number(adminDesignPosition.y),
@@ -515,13 +589,14 @@ const Customizer = () => {
             </h1>
 
             <p className="mt-3 max-w-xl text-sm leading-6 text-gray-500">
-              Choose your size and color, then add text or a design to create
-              your own T-shirt.
+              Choose your size and color, then add multiple text elements or
+              designs to create your custom T-shirt.
             </p>
           </div>
         </div>
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+          {/* Left Column: T-Shirt Canvas Preview */}
           <section className="lg:sticky lg:top-6 lg:self-start">
             <div className="border border-gray-200 bg-white">
               <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
@@ -531,7 +606,7 @@ const Customizer = () => {
                   </h2>
 
                   <p className="mt-1 text-xs text-gray-500">
-                    See how your design looks on the T-shirt.
+                    See how your designs and text look on the T-shirt.
                   </p>
                 </div>
 
@@ -559,21 +634,27 @@ const Customizer = () => {
                       </div>
                     )}
 
-                    {activeUserDesignPreview && (
-                      <img
-                        src={activeUserDesignPreview}
-                        alt="Uploaded Design"
-                        className="absolute h-auto max-w-[35%] object-contain"
-                        style={{
-                          left: `${userDesignPosition.x}%`,
-                          top: `${userDesignPosition.y}%`,
-                          transform:
-                            `translate(-50%, -50%) ` +
-                            `scale(${userDesignScale})`,
-                        }}
-                      />
+                    {/* Render User Uploaded Designs */}
+                    {userDesigns.map((ud) =>
+                      ud.preview ? (
+                        <img
+                          key={ud.id}
+                          src={ud.preview}
+                          alt="Uploaded Design"
+                          className="absolute h-auto max-w-[35%] object-contain"
+                          style={{
+                            left: `${ud.positionX}%`,
+                            top: `${ud.positionY}%`,
+                            transform:
+                              `translate(-50%, -50%) ` +
+                              `scale(${ud.scale}) ` +
+                              `rotate(${ud.rotation || 0}deg)`,
+                          }}
+                        />
+                      ) : null
                     )}
 
+                    {/* Render Predefined Admin Design */}
                     {selectedDesign && (
                       <img
                         src={
@@ -591,22 +672,27 @@ const Customizer = () => {
                       />
                     )}
 
-                    {customText && (
-                      <div
-                        className="absolute whitespace-nowrap font-bold"
-                        style={{
-                          left: `${textPosition.x}%`,
-                          top: `${textPosition.y}%`,
-                          color: textColor,
-                          fontSize: `${textFontSize}px`,
-                          transform:
-                            `translate(-50%, -50%) ` +
-                            `scale(${textScale}) ` +
-                            `rotate(${textRotation}deg)`,
-                        }}
-                      >
-                        {customText}
-                      </div>
+                    {/* Render Multiple Text Elements */}
+                    {texts.map((t) =>
+                      t.text ? (
+                        <div
+                          key={t.id}
+                          className="absolute whitespace-nowrap font-bold"
+                          style={{
+                            left: `${t.positionX}%`,
+                            top: `${t.positionY}%`,
+                            color: t.textColor,
+                            fontSize: `${t.fontSize}px`,
+                            fontFamily: t.fontFamily || "Inter",
+                            transform:
+                              `translate(-50%, -50%) ` +
+                              `scale(${t.scale || 1}) ` +
+                              `rotate(${t.rotation || 0}deg)`,
+                          }}
+                        >
+                          {t.text}
+                        </div>
+                      ) : null
                     )}
                   </div>
                 </div>
@@ -640,7 +726,9 @@ const Customizer = () => {
             </div>
           </section>
 
+          {/* Right Column: Customizer Controls */}
           <div className="space-y-6">
+            {/* Product Options */}
             <section className="border border-gray-200 bg-white">
               <div className="border-b border-gray-200 px-5 py-4">
                 <h2 className="text-base font-semibold text-gray-900">
@@ -697,181 +785,197 @@ const Customizer = () => {
               </div>
             </section>
 
+            {/* Dynamic Text Elements Section */}
             <section className="border border-gray-200 bg-white">
-              <div className="border-b border-gray-200 px-5 py-4">
+              <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
                 <h2 className="text-base font-semibold text-gray-900">
                   Add Text
                 </h2>
+
+                <button
+                  type="button"
+                  onClick={handleAddText}
+                  className="border border-black bg-black px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-gray-800"
+                >
+                  + Add Text
+                </button>
               </div>
 
-              <div className="p-5">
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-gray-900">
-                    Your Text
-                  </span>
+              <div className="divide-y divide-gray-200 p-5">
+                {texts.map((item, index) => (
+                  <div key={item.id} className={index > 0 ? "pt-6 mt-6" : ""}>
+                    <div className="mb-4 flex items-center justify-between">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-gray-700">
+                        Text {index + 1}
+                      </span>
 
-                  <input
-                    type="text"
-                    value={customText}
-                    maxLength={100}
-                    onChange={(event) => setCustomText(event.target.value)}
-                    placeholder="Enter your text"
-                    className="h-11 w-full border border-gray-300 px-3 text-sm outline-none focus:border-black"
-                  />
-
-                  <span className="mt-1 block text-right text-xs text-gray-400">
-                    {customText.length}/100
-                  </span>
-                </label>
-
-                <div className="mt-5">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-900">
-                      Text Color
-                    </span>
-
-                    <span className="text-xs text-gray-500">{textColor}</span>
-                  </div>
-
-                  <input
-                    type="color"
-                    value={textColor}
-                    onChange={(event) => setTextColor(event.target.value)}
-                    className="h-10 w-full cursor-pointer border border-gray-300 bg-white p-1"
-                  />
-                </div>
-
-                <div className="mt-6">
-                  <div className="mb-2 flex justify-between">
-                    <span className="text-sm font-medium text-gray-900">
-                      Font Size
-                    </span>
-
-                    <span className="text-xs text-gray-500">
-                      {textFontSize}px
-                    </span>
-                  </div>
-
-                  <input
-                    type="range"
-                    min="12"
-                    max="60"
-                    value={textFontSize}
-                    onChange={(event) =>
-                      setTextFontSize(Number(event.target.value))
-                    }
-                    className="w-full"
-                  />
-                </div>
-
-                <div className="mt-5">
-                  <div className="mb-2 flex justify-between">
-                    <span className="text-sm font-medium text-gray-900">
-                      Text Scale
-                    </span>
-
-                    <span className="text-xs text-gray-500">{textScale}x</span>
-                  </div>
-
-                  <input
-                    type="range"
-                    min="0.5"
-                    max="2"
-                    step="0.1"
-                    value={textScale}
-                    onChange={(event) =>
-                      setTextScale(Number(event.target.value))
-                    }
-                    className="w-full"
-                  />
-                </div>
-
-                <div className="mt-5">
-                  <div className="mb-2 flex justify-between">
-                    <span className="text-sm font-medium text-gray-900">
-                      Text Rotation
-                    </span>
-
-                    <span className="text-xs text-gray-500">
-                      {textRotation}°
-                    </span>
-                  </div>
-
-                  <input
-                    type="range"
-                    min="-180"
-                    max="180"
-                    value={textRotation}
-                    onChange={(event) =>
-                      setTextRotation(Number(event.target.value))
-                    }
-                    className="w-full"
-                  />
-                </div>
-
-                <div className="mt-6">
-                  <p className="mb-3 text-sm font-medium text-gray-900">
-                    Text Position
-                  </p>
-
-                  <div className="grid grid-cols-2 gap-5">
-                    <div>
-                      <div className="mb-2 flex justify-between">
-                        <span className="text-xs text-gray-500">Horizontal</span>
-
-                        <span className="text-xs text-gray-500">
-                          {textPosition.x}
-                        </span>
-                      </div>
-
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={textPosition.x}
-                        onChange={(event) =>
-                          updateTextPosition("x", event.target.value)
-                        }
-                        className="w-full"
-                      />
+                      {texts.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveText(item.id)}
+                          className="text-xs text-red-600 hover:underline"
+                        >
+                          Remove
+                        </button>
+                      )}
                     </div>
 
-                    <div>
-                      <div className="mb-2 flex justify-between">
-                        <span className="text-xs text-gray-500">Vertical</span>
+                    <label className="block">
+                      <span className="mb-1.5 block text-xs font-medium text-gray-800">
+                        Content
+                      </span>
+                      <input
+                        type="text"
+                        value={item.text}
+                        maxLength={100}
+                        onChange={(e) =>
+                          updateTextItem(item.id, "text", e.target.value)
+                        }
+                        placeholder="Enter your text"
+                        className="h-10 w-full border border-gray-300 px-3 text-sm outline-none focus:border-black"
+                      />
+                    </label>
 
-                        <span className="text-xs text-gray-500">
-                          {textPosition.y}
-                        </span>
+                    <div className="mt-4 grid grid-cols-2 gap-4">
+                      {/* Font Family Selector */}
+                      <div>
+                        <label className="mb-1.5 block text-xs font-medium text-gray-800">
+                          Font
+                        </label>
+                        <select
+                          value={item.fontFamily || "Inter"}
+                          onChange={(e) =>
+                            updateTextItem(item.id, "fontFamily", e.target.value)
+                          }
+                          className="h-10 w-full border border-gray-300 bg-white px-2.5 text-sm outline-none focus:border-black"
+                        >
+                          {FONT_OPTIONS.map((font) => (
+                            <option key={font} value={font} style={{ fontFamily: font }}>
+                              {font}
+                            </option>
+                          ))}
+                        </select>
                       </div>
 
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={textPosition.y}
-                        onChange={(event) =>
-                          updateTextPosition("y", event.target.value)
-                        }
-                        className="w-full"
-                      />
+                      {/* Text Color Picker */}
+                      <div>
+                        <div className="mb-1.5 flex items-center justify-between text-xs">
+                          <span className="font-medium text-gray-800">Color</span>
+                          <span className="text-gray-500">{item.textColor}</span>
+                        </div>
+                        <input
+                          type="color"
+                          value={item.textColor || "#000000"}
+                          onChange={(e) =>
+                            updateTextItem(item.id, "textColor", e.target.value)
+                          }
+                          className="h-10 w-full cursor-pointer border border-gray-300 bg-white p-1"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Font Size & Rotation Sliders */}
+                    <div className="mt-4 grid grid-cols-2 gap-4">
+                      <div>
+                        <div className="mb-1 flex justify-between text-xs">
+                          <span className="font-medium text-gray-800">Font Size</span>
+                          <span className="text-gray-500">{item.fontSize}px</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="12"
+                          max="60"
+                          value={item.fontSize}
+                          onChange={(e) =>
+                            updateTextItem(item.id, "fontSize", Number(e.target.value))
+                          }
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="mb-1 flex justify-between text-xs">
+                          <span className="font-medium text-gray-800">Rotation</span>
+                          <span className="text-gray-500">{item.rotation}°</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="-180"
+                          max="180"
+                          value={item.rotation}
+                          onChange={(e) =>
+                            updateTextItem(item.id, "rotation", Number(e.target.value))
+                          }
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Position Sliders */}
+                    <div className="mt-4">
+                      <p className="mb-2 text-xs font-medium text-gray-800">
+                        Position Controls
+                      </p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <div className="mb-1 flex justify-between text-xs">
+                            <span className="text-gray-600">Horizontal</span>
+                            <span className="text-gray-500">{item.positionX}</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={item.positionX}
+                            onChange={(e) =>
+                              updateTextItem(item.id, "positionX", Number(e.target.value))
+                            }
+                            className="w-full"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="mb-1 flex justify-between text-xs">
+                            <span className="text-gray-600">Vertical</span>
+                            <span className="text-gray-500">{item.positionY}</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={item.positionY}
+                            onChange={(e) =>
+                              updateTextItem(item.id, "positionY", Number(e.target.value))
+                            }
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
             </section>
 
+            {/* Dynamic Design Uploads Section */}
             <section className="border border-gray-200 bg-white">
               <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
                 <div>
                   <h2 className="text-base font-semibold text-gray-900">
                     Upload Your Design
                   </h2>
-
-                  <p className="mt-1 text-xs text-gray-500">
-                    Upload up to 2 personal designs (PNG, JPG or WEBP • Max 5 MB).
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    Upload personal designs (PNG, JPG or WEBP • Max 5 MB).
                   </p>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={handleAddUserDesign}
+                  className="border border-black bg-black px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-gray-800"
+                >
+                  + Add More
+                </button>
               </div>
 
               <div className="p-5">
@@ -881,178 +985,162 @@ const Customizer = () => {
                   </div>
                 )}
 
-                {upload1.file && upload2.file && (
-                  <div className="mb-4 text-xs font-medium text-gray-500">
-                    Maximum 2 designs allowed.
-                  </div>
-                )}
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {/* Upload Slot 1 */}
-                  <div
-                    className={`border p-3 ${
-                      activeUploadedSlot === 1
-                        ? "border-black bg-gray-50"
-                        : "border-gray-200 bg-white"
-                    }`}
-                  >
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-xs font-semibold text-gray-900">
-                        Upload 1
-                      </span>
-                      {upload1.file && (
-                        <span className="text-[10px] font-semibold text-gray-500">
-                          {activeUploadedSlot === 1 ? "ACTIVE" : ""}
+                <div className="space-y-6 divide-y divide-gray-200">
+                  {userDesigns.map((item, index) => (
+                    <div key={item.id} className={index > 0 ? "pt-6" : ""}>
+                      <div className="mb-3 flex items-center justify-between">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-gray-900">
+                          Design {index + 1}
                         </span>
-                      )}
-                    </div>
 
-                    {upload1.preview ? (
-                      <div>
-                        <div
-                          className="flex cursor-pointer items-center gap-3"
-                          onClick={() => selectUploadAsActive(1)}
-                        >
-                          <div className="h-16 w-16 shrink-0 overflow-hidden border border-gray-200 bg-white p-1">
-                            <img
-                              src={upload1.preview}
-                              alt="Upload 1 Preview"
-                              className="h-full w-full object-contain"
-                            />
-                          </div>
-
-                          <div className="min-w-0 flex-1 text-xs">
-                            <p className="truncate font-medium text-gray-900">
-                              {upload1.file.name}
-                            </p>
-                            <p className="mt-0.5 text-gray-500">
-                              {(upload1.file.size / (1024 * 1024)).toFixed(
-                                2
-                              )}{" "}
-                              MB
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="mt-3 flex items-center justify-between border-t border-gray-200 pt-2 text-xs">
-                          <label className="cursor-pointer font-medium text-black hover:underline">
-                            Replace Image
-                            <input
-                              type="file"
-                              accept="image/png, image/jpeg, image/jpg, image/webp"
-                              onChange={(e) => handleUserDesignSelect(e, 1)}
-                              className="hidden"
-                            />
-                          </label>
-
+                        {userDesigns.length > 1 && (
                           <button
                             type="button"
-                            onClick={() => handleRemoveUserDesign(1)}
-                            className="text-red-600 hover:underline"
+                            onClick={() => handleRemoveUserDesignItem(item.id)}
+                            className="text-xs text-red-600 hover:underline"
                           >
                             Remove
                           </button>
-                        </div>
+                        )}
                       </div>
-                    ) : (
-                      <label className="flex cursor-pointer flex-col items-center justify-center border border-dashed border-gray-300 py-6 text-center hover:border-gray-400">
-                        <span className="border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-100">
-                          Choose Image
-                        </span>
-                        <input
-                          type="file"
-                          accept="image/png, image/jpeg, image/jpg, image/webp"
-                          onChange={(e) => handleUserDesignSelect(e, 1)}
-                          className="hidden"
-                        />
-                      </label>
-                    )}
-                  </div>
 
-                  {/* Upload Slot 2 */}
-                  <div
-                    className={`border p-3 ${
-                      activeUploadedSlot === 2
-                        ? "border-black bg-gray-50"
-                        : "border-gray-200 bg-white"
-                    }`}
-                  >
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-xs font-semibold text-gray-900">
-                        Upload 2
-                      </span>
-                      {upload2.file && (
-                        <span className="text-[10px] font-semibold text-gray-500">
-                          {activeUploadedSlot === 2 ? "ACTIVE" : ""}
-                        </span>
+                      {item.preview ? (
+                        <div className="border border-gray-200 bg-gray-50/50 p-4">
+                          <div className="flex items-center gap-4">
+                            <div className="h-16 w-16 shrink-0 overflow-hidden border border-gray-200 bg-white p-1">
+                              <img
+                                src={item.preview}
+                                alt={`Design ${index + 1} Preview`}
+                                className="h-full w-full object-contain"
+                              />
+                            </div>
+
+                            <div className="min-w-0 flex-1 text-xs">
+                              <p className="truncate font-medium text-gray-900">
+                                {item.file?.name || "Uploaded Image"}
+                              </p>
+                              {item.file && (
+                                <p className="mt-0.5 text-gray-500">
+                                  {(item.file.size / (1024 * 1024)).toFixed(2)} MB
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              <label className="cursor-pointer text-xs font-medium text-black hover:underline">
+                                Replace
+                                <input
+                                  type="file"
+                                  accept="image/png, image/jpeg, image/jpg, image/webp"
+                                  onChange={(e) => handleUserDesignFileSelect(e, item.id)}
+                                  className="hidden"
+                                />
+                              </label>
+
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveUserDesignItem(item.id)}
+                                className="text-xs text-red-600 hover:underline"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Item Customization Controls */}
+                          <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-2 gap-4">
+                            <div>
+                              <div className="mb-1 flex justify-between text-xs">
+                                <span className="font-medium text-gray-800">Size</span>
+                                <span className="text-gray-500">{item.scale}x</span>
+                              </div>
+                              <input
+                                type="range"
+                                min="0.2"
+                                max="3.0"
+                                step="0.1"
+                                value={item.scale}
+                                onChange={(e) =>
+                                  updateUserDesignItem(item.id, "scale", Number(e.target.value))
+                                }
+                                className="w-full"
+                              />
+                            </div>
+
+                            <div>
+                              <div className="mb-1 flex justify-between text-xs">
+                                <span className="font-medium text-gray-800">Rotation</span>
+                                <span className="text-gray-500">{item.rotation}°</span>
+                              </div>
+                              <input
+                                type="range"
+                                min="-180"
+                                max="180"
+                                value={item.rotation}
+                                onChange={(e) =>
+                                  updateUserDesignItem(item.id, "rotation", Number(e.target.value))
+                                }
+                                className="w-full"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="mt-4 grid grid-cols-2 gap-4">
+                            <div>
+                              <div className="mb-1 flex justify-between text-xs">
+                                <span className="text-gray-600">Horizontal</span>
+                                <span className="text-gray-500">{item.positionX}</span>
+                              </div>
+                              <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={item.positionX}
+                                onChange={(e) =>
+                                  updateUserDesignItem(item.id, "positionX", Number(e.target.value))
+                                }
+                                className="w-full"
+                              />
+                            </div>
+
+                            <div>
+                              <div className="mb-1 flex justify-between text-xs">
+                                <span className="text-gray-600">Vertical</span>
+                                <span className="text-gray-500">{item.positionY}</span>
+                              </div>
+                              <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={item.positionY}
+                                onChange={(e) =>
+                                  updateUserDesignItem(item.id, "positionY", Number(e.target.value))
+                                }
+                                className="w-full"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <label className="flex cursor-pointer flex-col items-center justify-center border border-dashed border-gray-300 py-6 text-center hover:border-gray-400">
+                          <span className="border border-gray-300 bg-white px-3.5 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-100">
+                            Choose Image
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/png, image/jpeg, image/jpg, image/webp"
+                            onChange={(e) => handleUserDesignFileSelect(e, item.id)}
+                            className="hidden"
+                          />
+                        </label>
                       )}
                     </div>
-
-                    {upload2.preview ? (
-                      <div>
-                        <div
-                          className="flex cursor-pointer items-center gap-3"
-                          onClick={() => selectUploadAsActive(2)}
-                        >
-                          <div className="h-16 w-16 shrink-0 overflow-hidden border border-gray-200 bg-white p-1">
-                            <img
-                              src={upload2.preview}
-                              alt="Upload 2 Preview"
-                              className="h-full w-full object-contain"
-                            />
-                          </div>
-
-                          <div className="min-w-0 flex-1 text-xs">
-                            <p className="truncate font-medium text-gray-900">
-                              {upload2.file.name}
-                            </p>
-                            <p className="mt-0.5 text-gray-500">
-                              {(upload2.file.size / (1024 * 1024)).toFixed(
-                                2
-                              )}{" "}
-                              MB
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="mt-3 flex items-center justify-between border-t border-gray-200 pt-2 text-xs">
-                          <label className="cursor-pointer font-medium text-black hover:underline">
-                            Replace Image
-                            <input
-                              type="file"
-                              accept="image/png, image/jpeg, image/jpg, image/webp"
-                              onChange={(e) => handleUserDesignSelect(e, 2)}
-                              className="hidden"
-                            />
-                          </label>
-
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveUserDesign(2)}
-                            className="text-red-600 hover:underline"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <label className="flex cursor-pointer flex-col items-center justify-center border border-dashed border-gray-300 py-6 text-center hover:border-gray-400">
-                        <span className="border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-100">
-                          Choose Image
-                        </span>
-                        <input
-                          type="file"
-                          accept="image/png, image/jpeg, image/jpg, image/webp"
-                          onChange={(e) => handleUserDesignSelect(e, 2)}
-                          className="hidden"
-                        />
-                      </label>
-                    )}
-                  </div>
+                  ))}
                 </div>
               </div>
             </section>
 
+            {/* Choose Predefined Admin Design Section */}
             <section className="border border-gray-200 bg-white">
               <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
                 <div>
@@ -1061,7 +1149,7 @@ const Customizer = () => {
                   </h2>
 
                   <p className="mt-1 text-xs text-gray-500">
-                    Select a design to add to your T-shirt.
+                    Select a predefined design to add to your T-shirt.
                   </p>
                 </div>
 
@@ -1121,73 +1209,9 @@ const Customizer = () => {
                   )}
                 </div>
 
-                {/* Independent Design Controls Section */}
-                <div className="mt-8 space-y-6 border-t border-gray-200 pt-6">
-                  {/* User Design Controls */}
-                  {activeUserDesignPreview && (
-                    <div className="border border-gray-200 bg-gray-50/50 p-4">
-                      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-700">
-                        User Design Controls (Upload {activeUploadedSlot})
-                      </p>
-
-                      <div>
-                        <div className="mb-1 flex justify-between text-xs">
-                          <span className="font-medium text-gray-800">Size</span>
-                          <span className="text-gray-500">{userDesignScale}x</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="0.2"
-                          max="3.0"
-                          step="0.1"
-                          value={userDesignScale}
-                          onChange={(event) =>
-                            setUserDesignScale(Number(event.target.value))
-                          }
-                          className="w-full"
-                        />
-                      </div>
-
-                      <div className="mt-4 grid grid-cols-2 gap-4">
-                        <div>
-                          <div className="mb-1 flex justify-between text-xs">
-                            <span className="text-gray-600">Horizontal</span>
-                            <span className="text-gray-500">{userDesignPosition.x}</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            value={userDesignPosition.x}
-                            onChange={(event) =>
-                              updateUserDesignPosition("x", event.target.value)
-                            }
-                            className="w-full"
-                          />
-                        </div>
-
-                        <div>
-                          <div className="mb-1 flex justify-between text-xs">
-                            <span className="text-gray-600">Vertical</span>
-                            <span className="text-gray-500">{userDesignPosition.y}</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            value={userDesignPosition.y}
-                            onChange={(event) =>
-                              updateUserDesignPosition("y", event.target.value)
-                            }
-                            className="w-full"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Admin Design Controls */}
-                  {selectedDesign && (
+                {/* Admin Design Controls */}
+                {selectedDesign && (
+                  <div className="mt-6 border-t border-gray-200 pt-5">
                     <div className="border border-gray-200 bg-gray-50/50 p-4">
                       <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-700">
                         Admin Design Controls ({selectedDesign.name || "Selected"})
@@ -1247,17 +1271,12 @@ const Customizer = () => {
                         </div>
                       </div>
                     </div>
-                  )}
-
-                  {!activeUserDesignPreview && !selectedDesign && (
-                    <p className="text-center text-xs text-gray-400">
-                      Select or upload a design to customize size and position.
-                    </p>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </section>
 
+            {/* Save & Add to Cart Section */}
             <section className="border border-gray-200 bg-white p-5">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Product Price</span>

@@ -337,14 +337,28 @@ const OrderDetails = () => {
                               Customized Item
                             </p>
 
-                            {item.customization.text && (
+                            {Array.isArray(item.customization.texts) && item.customization.texts.length > 0 ? (
+                              item.customization.texts.map((t, idx) =>
+                                t.text ? (
+                                  <p key={t.id || idx} className="text-xs text-gray-500">
+                                    Text:{" "}
+                                    <span
+                                      className="font-medium text-gray-900"
+                                      style={{ fontFamily: t.fontFamily || "inherit" }}
+                                    >
+                                      {t.text}
+                                    </span>
+                                  </p>
+                                ) : null
+                              )
+                            ) : item.customization.text ? (
                               <p className="text-xs text-gray-500">
                                 Text:{" "}
                                 <span className="font-medium text-gray-900">
                                   {item.customization.text}
                                 </span>
                               </p>
-                            )}
+                            ) : null}
 
                             {item.customization.design && (
                               <div className="flex items-center gap-2">
@@ -372,7 +386,28 @@ const OrderDetails = () => {
                               </div>
                             )}
 
-                            {item.customization.imageUrl && (
+                            {Array.isArray(item.customization.userDesigns) && item.customization.userDesigns.length > 0 ? (
+                              item.customization.userDesigns.map((ud, idx) =>
+                                ud.imageUrl ? (
+                                  <div key={ud.id || idx} className="flex items-center gap-2">
+                                    <img
+                                      src={ud.imageUrl}
+                                      alt="Uploaded Design"
+                                      className="h-10 w-10 border border-gray-200 bg-gray-50 object-contain"
+                                    />
+                                    <span className="text-xs text-gray-500">
+                                      User Uploaded Design
+                                      {ud.originalFileName && (
+                                        <span className="font-medium text-gray-900">
+                                          {" "}
+                                          ({ud.originalFileName})
+                                        </span>
+                                      )}
+                                    </span>
+                                  </div>
+                                ) : null
+                              )
+                            ) : item.customization.imageUrl ? (
                               <div className="flex items-center gap-2">
                                 <img
                                   src={item.customization.imageUrl}
@@ -389,7 +424,7 @@ const OrderDetails = () => {
                                   )}
                                 </span>
                               </div>
-                            )}
+                            ) : null}
                           </div>
                         )}
                       </div>

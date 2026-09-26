@@ -278,14 +278,28 @@ const Cart = () => {
 
                         {item.customization && (
                           <div className="mt-3 border-l-2 border-gray-300 pl-3">
-                            {item.customization.text && (
+                            {Array.isArray(item.customization.texts) && item.customization.texts.length > 0 ? (
+                              item.customization.texts.map((t, idx) =>
+                                t.text ? (
+                                  <p key={t.id || idx} className="text-sm text-gray-600">
+                                    Text:{" "}
+                                    <span
+                                      className="font-medium text-gray-900"
+                                      style={{ fontFamily: t.fontFamily || "inherit" }}
+                                    >
+                                      {t.text}
+                                    </span>
+                                  </p>
+                                ) : null
+                              )
+                            ) : item.customization.text ? (
                               <p className="text-sm text-gray-600">
                                 Text:{" "}
                                 <span className="font-medium text-gray-900">
                                   {item.customization.text}
                                 </span>
                               </p>
-                            )}
+                            ) : null}
 
                             {item.customization.design && (
                               <p className="mt-1 text-xs text-gray-500">
@@ -293,7 +307,23 @@ const Cart = () => {
                               </p>
                             )}
 
-                            {item.customization.imageUrl && (
+                            {Array.isArray(item.customization.userDesigns) && item.customization.userDesigns.length > 0 ? (
+                              item.customization.userDesigns.map((ud, idx) =>
+                                ud.imageUrl ? (
+                                  <div key={ud.id || idx} className="mt-2 flex items-center gap-2">
+                                    <img
+                                      src={ud.imageUrl}
+                                      alt="Uploaded Design"
+                                      className="h-10 w-10 border border-gray-200 bg-gray-50 object-contain"
+                                    />
+                                    <span className="text-xs text-gray-500">
+                                      User Uploaded Design
+                                      {ud.originalFileName ? ` (${ud.originalFileName})` : ""}
+                                    </span>
+                                  </div>
+                                ) : null
+                              )
+                            ) : item.customization.imageUrl ? (
                               <div className="mt-2 flex items-center gap-2">
                                 <img
                                   src={item.customization.imageUrl}
@@ -304,7 +334,7 @@ const Cart = () => {
                                   User Uploaded Design
                                 </span>
                               </div>
-                            )}
+                            ) : null}
                           </div>
                         )}
 

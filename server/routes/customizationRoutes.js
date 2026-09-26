@@ -12,11 +12,11 @@ const upload = require("../middleware/uploadMiddleware");
 
 const router = express.Router();
 
-router.post("/", protect, upload.single("userDesign"), createCustomization);
+router.post("/", protect, upload.any(), createCustomization);
 
 router.get("/:id", protect, getCustomizationById);
 
-router.put("/:id", protect, upload.single("userDesign"), updateCustomization);
+router.put("/:id", protect, upload.any(), updateCustomization);
 
 router.delete("/:id", protect, deleteCustomization);
 
