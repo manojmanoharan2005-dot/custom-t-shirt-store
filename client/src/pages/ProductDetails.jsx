@@ -12,7 +12,8 @@ import { useAuth } from "../context/AuthContext";
 import { useNotification } from "../context/NotificationContext";
 
 const ProductDetails = () => {
-  const { id } = useParams();
+  const { id: paramId, slug: paramSlug } = useParams();
+  const slug = paramSlug || paramId;
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -28,7 +29,7 @@ const ProductDetails = () => {
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState(false);
 
-  const selectionKey = `productSelection_${id}`;
+  const selectionKey = `productSelection_${slug}`;
 
   const pendingActionHandledRef = useRef(false);
 
@@ -41,11 +42,15 @@ const ProductDetails = () => {
         setLoading(true);
 
         const response =
-          await productService.getProductById(id);
+          await productService.getProductById(slug);
 
         const loadedProduct = response.product;
 
         setProduct(loadedProduct);
+
+        if (loadedProduct?.slug && slug !== loadedProduct.slug) {
+          navigate(`/products/${loadedProduct.slug}`, { replace: true });
+        }
 
         const variants = Array.isArray(
           loadedProduct?.variants
@@ -231,7 +236,7 @@ const ProductDetails = () => {
 
       navigate("/login", {
         state: {
-          from: `/products/${id}`,
+          from: `/products/${product?.slug || slug}`,
           pendingAction: "add-to-cart",
         },
       });
@@ -306,7 +311,7 @@ const ProductDetails = () => {
 
       navigate("/login", {
         state: {
-          from: `/products/${id}`,
+          from: `/products/${product?.slug || slug}`,
           pendingAction: "customize",
         },
       });

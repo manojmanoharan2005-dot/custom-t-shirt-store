@@ -1,5 +1,54 @@
+const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const uploadToCloudinary = require("../utils/cloudinaryUpload");
+
+const generateBaseSlug = (text) => {
+  if (!text) return "";
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/[\s_]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+};
+
+const generateUniqueSlug = async (name, currentProductId = null) => {
+  let baseSlug = generateBaseSlug(name) || "product";
+  let slug = baseSlug;
+  let counter = 1;
+
+  while (true) {
+    const existing = await Product.findOne({
+      slug,
+      ...(currentProductId ? { _id: { $ne: currentProductId } } : {}),
+    });
+
+    if (!existing) {
+      return slug;
+    }
+
+    counter++;
+    slug = `${baseSlug}-${counter}`;
+  }
+};
+
+const ensureSlugsExist = async () => {
+  try {
+    const productsWithoutSlug = await Product.find({
+      $or: [{ slug: { $exists: false } }, { slug: null }, { slug: "" }],
+    });
+
+    for (const product of productsWithoutSlug) {
+      const slug = await generateUniqueSlug(product.name, product._id);
+      product.slug = slug;
+      await product.save();
+    }
+  } catch (error) {
+    console.error("Backfill slugs error:", error.message);
+  }
+};
 
 const normalizeArray = (value) => {
   if (Array.isArray(value)) {
@@ -141,8 +190,11 @@ const createProduct = async (req, res) => {
       });
     }
 
+    const slug = await generateUniqueSlug(name.trim());
+
     const product = await Product.create({
       name: name.trim(),
+      slug,
       description: description.trim(),
       price: Number(price),
       category: category.trim(),
@@ -177,6 +229,8 @@ const createProduct = async (req, res) => {
 
 const getProducts = async (req, res) => {
   try {
+    await ensureSlugsExist();
+
     const {
       search,
       category,
@@ -269,7 +323,7 @@ const getProducts = async (req, res) => {
       .sort(sortOption);
 
     if (view === "card") {
-      query = query.select("_id name price category variants");
+      query = query.select("_id name slug price category variants");
     }
 
     const parsedPage = Math.max(1, parseInt(page, 10) || 1);
@@ -316,14 +370,25 @@ const getProducts = async (req, res) => {
 
 const getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(
-      req.params.id
-    );
+    await ensureSlugsExist();
+
+    const param = req.params.id || req.params.slug;
+
+    let product = await Product.findOne({ slug: param });
+
+    if (!product && mongoose.Types.ObjectId.isValid(param)) {
+      product = await Product.findById(param);
+    }
 
     if (!product || !product.isActive) {
       return res.status(404).json({
         message: "Product not found",
       });
+    }
+
+    if (!product.slug) {
+      product.slug = await generateUniqueSlug(product.name, product._id);
+      await product.save();
     }
 
     return res.status(200).json({
@@ -365,7 +430,23 @@ const updateProduct = async (req, res) => {
     } = req.body;
 
     if (name !== undefined) {
-      product.name = name.trim();
+      const newName = name.trim();
+      if (newName !== product.name) {
+        const oldBase = generateBaseSlug(product.name);
+        const currentBase = generateBaseSlug(product.slug || "");
+        if (
+          !product.slug ||
+          currentBase === oldBase ||
+          currentBase.startsWith(oldBase)
+        ) {
+          product.slug = await generateUniqueSlug(newName, product._id);
+        }
+      }
+      product.name = newName;
+    }
+
+    if (!product.slug) {
+      product.slug = await generateUniqueSlug(product.name, product._id);
     }
 
     if (description !== undefined) {

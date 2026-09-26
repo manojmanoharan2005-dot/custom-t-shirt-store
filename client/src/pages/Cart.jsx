@@ -196,7 +196,9 @@ const Cart = () => {
                   item.image ||
                   "";
 
-                const productLink = product?._id
+                const productLink = product?.slug
+                  ? `/products/${product.slug}`
+                  : product?._id
                   ? `/products/${product._id}`
                   : "/products";
 

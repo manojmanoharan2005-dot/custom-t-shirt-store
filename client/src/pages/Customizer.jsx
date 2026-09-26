@@ -499,7 +499,7 @@ const Customizer = () => {
       <div className="mx-auto max-w-7xl px-5 py-8 sm:px-6 lg:px-8">
         <div className="border-b border-gray-200 pb-7">
           <Link
-            to={`/products/${product._id}`}
+            to={`/products/${product.slug || product._id}`}
             className="text-sm text-gray-500 hover:text-black"
           >
             ← Back to Product
