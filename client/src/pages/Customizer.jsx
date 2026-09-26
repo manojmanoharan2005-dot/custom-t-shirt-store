@@ -45,8 +45,9 @@ const Customizer = () => {
     y: 65,
   });
 
-  const [userDesignFile, setUserDesignFile] = useState(null);
-  const [userDesignPreview, setUserDesignPreview] = useState("");
+  const [upload1, setUpload1] = useState({ file: null, preview: "" });
+  const [upload2, setUpload2] = useState({ file: null, preview: "" });
+  const [activeDesignSource, setActiveDesignSource] = useState(null);
   const [userDesignError, setUserDesignError] = useState("");
 
   const [loading, setLoading] = useState(true);
@@ -54,13 +55,12 @@ const Customizer = () => {
 
   useEffect(() => {
     return () => {
-      if (userDesignPreview) {
-        URL.revokeObjectURL(userDesignPreview);
-      }
+      if (upload1.preview) URL.revokeObjectURL(upload1.preview);
+      if (upload2.preview) URL.revokeObjectURL(upload2.preview);
     };
-  }, [userDesignPreview]);
+  }, []);
 
-  const handleUserDesignSelect = (event) => {
+  const handleUserDesignSelect = (event, slotIndex) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -83,23 +83,53 @@ const Customizer = () => {
       return;
     }
 
-    if (userDesignPreview) {
-      URL.revokeObjectURL(userDesignPreview);
+    const newPreview = URL.createObjectURL(file);
+
+    if (slotIndex === 1) {
+      if (upload1.preview) URL.revokeObjectURL(upload1.preview);
+      setUpload1({ file, preview: newPreview });
+      setActiveDesignSource({ type: "upload1" });
+      setSelectedDesign(null);
+    } else {
+      if (upload2.preview) URL.revokeObjectURL(upload2.preview);
+      setUpload2({ file, preview: newPreview });
+      setActiveDesignSource({ type: "upload2" });
+      setSelectedDesign(null);
     }
 
     setUserDesignError("");
-    setUserDesignFile(file);
-    setUserDesignPreview(URL.createObjectURL(file));
-    setSelectedDesign(null);
   };
 
-  const handleRemoveUserDesign = () => {
-    setUserDesignFile(null);
-    if (userDesignPreview) {
-      URL.revokeObjectURL(userDesignPreview);
-      setUserDesignPreview("");
+  const handleRemoveUserDesign = (slotIndex) => {
+    if (slotIndex === 1) {
+      if (upload1.preview) URL.revokeObjectURL(upload1.preview);
+      setUpload1({ file: null, preview: "" });
+      if (activeDesignSource?.type === "upload1") {
+        setActiveDesignSource(null);
+      }
+    } else {
+      if (upload2.preview) URL.revokeObjectURL(upload2.preview);
+      setUpload2({ file: null, preview: "" });
+      if (activeDesignSource?.type === "upload2") {
+        setActiveDesignSource(null);
+      }
     }
     setUserDesignError("");
+  };
+
+  const selectUploadAsActive = (slotIndex) => {
+    if (slotIndex === 1 && upload1.file) {
+      setActiveDesignSource({ type: "upload1" });
+      setSelectedDesign(null);
+    } else if (slotIndex === 2 && upload2.file) {
+      setActiveDesignSource({ type: "upload2" });
+      setSelectedDesign(null);
+    }
+  };
+
+  const selectAdminDesignAsActive = (design) => {
+    setSelectedDesign(design);
+    setActiveDesignSource({ type: "admin", id: design._id });
   };
 
   const loadData = async () => {
@@ -251,212 +281,158 @@ const Customizer = () => {
     }));
   };
 
-  const handleSaveAndAddToCart =
-    async () => {
-      const productId =
-        product?._id || id;
+  const activeUpload =
+    activeDesignSource?.type === "upload1"
+      ? upload1
+      : activeDesignSource?.type === "upload2"
+        ? upload2
+        : null;
 
-      const size =
-        selectedSize ||
-        product?.sizes?.[0] ||
-        "";
+  const activeUserDesignPreview = activeUpload?.preview || "";
+  const activeUserDesignFile = activeUpload?.file || null;
 
-      const color =
-        selectedColor ||
-        availableColors?.[0] ||
-        "";
+  const activeDesignName = activeUserDesignFile
+    ? activeUserDesignFile.name
+    : selectedDesign?.name || "None";
 
-      const text =
-        customText.trim();
+  const handleSaveAndAddToCart = async () => {
+    const productId = product?._id || id;
+    const size = selectedSize || product?.sizes?.[0] || "";
+    const color = selectedColor || availableColors?.[0] || "";
+    const text = customText.trim();
 
-      if (!productId) {
-        showNotification(
-          "Product information is missing.",
-          "error"
+    if (!productId) {
+      showNotification("Product information is missing.", "error");
+      return;
+    }
+
+    if (!product?.customizable) {
+      showNotification("This product cannot be customized.", "error");
+      return;
+    }
+
+    if (!size) {
+      showNotification("Please select a size.", "warning");
+      return;
+    }
+
+    if (!color) {
+      showNotification("Please select a color.", "warning");
+      return;
+    }
+
+    if (!text && !selectedDesign && !activeUserDesignFile) {
+      showNotification(
+        "Please add text, select a design, or upload your design.",
+        "warning"
+      );
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      let customizationData;
+      if (activeUserDesignFile) {
+        const formData = new FormData();
+        formData.append("product", productId);
+        formData.append("size", size);
+        formData.append("color", color);
+        formData.append("text", text);
+        formData.append("textColor", textColor);
+        formData.append(
+          "textPosition",
+          JSON.stringify({
+            x: Number(textPosition.x),
+            y: Number(textPosition.y),
+          })
         );
-        return;
-      }
-
-      if (!product?.customizable) {
-        showNotification(
-          "This product cannot be customized.",
-          "error"
+        formData.append("textSize", Number(textFontSize));
+        formData.append("textScale", Number(textScale));
+        formData.append("textRotation", Number(textRotation));
+        formData.append(
+          "designPosition",
+          JSON.stringify({
+            x: Number(designPosition.x),
+            y: Number(designPosition.y),
+          })
         );
-        return;
-      }
-
-      if (!size) {
-        showNotification(
-          "Please select a size.",
-          "warning"
+        formData.append(
+          "designSize",
+          JSON.stringify({ width: 100, height: 100 })
         );
-        return;
-      }
+        formData.append("designScale", Number(designScale));
+        formData.append("designRotation", Number(designRotation));
+        formData.append("userDesign", activeUserDesignFile);
 
-      if (!color) {
-        showNotification(
-          "Please select a color.",
-          "warning"
-        );
-        return;
-      }
-
-      if (!text && !selectedDesign && !userDesignFile) {
-        showNotification(
-          "Please add text, select a design, or upload your design.",
-          "warning"
-        );
-        return;
-      }
-
-      try {
-        setSaving(true);
-
-        let customizationData;
-        if (userDesignFile) {
-          const formData = new FormData();
-          formData.append("product", productId);
-          formData.append("size", size);
-          formData.append("color", color);
-          formData.append("text", text);
-          formData.append("textColor", textColor);
-          formData.append(
-            "textPosition",
-            JSON.stringify({
-              x: Number(textPosition.x),
-              y: Number(textPosition.y),
-            })
-          );
-          formData.append("textSize", Number(textFontSize));
-          formData.append("textScale", Number(textScale));
-          formData.append("textRotation", Number(textRotation));
-          if (selectedDesign?._id) {
-            formData.append("design", selectedDesign._id);
-          }
-          formData.append(
-            "designPosition",
-            JSON.stringify({
-              x: Number(designPosition.x),
-              y: Number(designPosition.y),
-            })
-          );
-          formData.append(
-            "designSize",
-            JSON.stringify({ width: 100, height: 100 })
-          );
-          formData.append("designScale", Number(designScale));
-          formData.append("designRotation", Number(designRotation));
-          formData.append("userDesign", userDesignFile);
-
-          customizationData = formData;
-        } else {
-          customizationData = {
-            product: productId,
-
-            size,
-
-            color,
-
-            text,
-
-            textColor,
-
-            textPosition: {
-              x: Number(textPosition.x),
-              y: Number(textPosition.y),
-            },
-
-            textSize:
-              Number(textFontSize),
-
-            textScale:
-              Number(textScale),
-
-            textRotation:
-              Number(textRotation),
-
-            design:
-              selectedDesign?._id ||
-              null,
-
-            designPosition: {
-              x: Number(
-                designPosition.x
-              ),
-              y: Number(
-                designPosition.y
-              ),
-            },
-
-            designSize: {
-              width: 100,
-              height: 100,
-            },
-
-            designScale:
-              Number(designScale),
-
-            designRotation:
-              Number(designRotation),
-          };
-        }
-
-        const response =
-          await customizationService.createCustomization(
-            customizationData
-          );
-
-        const customization =
-          response?.customization;
-
-        if (!customization?._id) {
-          throw new Error(
-            "Customization was not created."
-          );
-        }
-
-        await cartService.addToCart({
+        customizationData = formData;
+      } else {
+        customizationData = {
           product: productId,
-
           size,
-
           color,
-
-          quantity: 1,
-
-          customization:
-            customization._id,
-        });
-
-        showNotification(
-          "Customization saved and added to cart.",
-          "success"
-        );
-
-        setTimeout(() => {
-          navigate("/cart");
-        }, 700);
-      } catch (error) {
-        console.error(
-          "Customization error:",
-          error
-        );
-
-        showNotification(
-          error.response?.data?.message ||
-            error.message ||
-            "Failed to save customization.",
-          "error"
-        );
-      } finally {
-        setSaving(false);
+          text,
+          textColor,
+          textPosition: {
+            x: Number(textPosition.x),
+            y: Number(textPosition.y),
+          },
+          textSize: Number(textFontSize),
+          textScale: Number(textScale),
+          textRotation: Number(textRotation),
+          design: selectedDesign?._id || null,
+          designPosition: {
+            x: Number(designPosition.x),
+            y: Number(designPosition.y),
+          },
+          designSize: {
+            width: 100,
+            height: 100,
+          },
+          designScale: Number(designScale),
+          designRotation: Number(designRotation),
+        };
       }
-    };
+
+      const response = await customizationService.createCustomization(
+        customizationData
+      );
+
+      const customization = response?.customization;
+
+      if (!customization?._id) {
+        throw new Error("Customization was not created.");
+      }
+
+      await cartService.addToCart({
+        product: productId,
+        size,
+        color,
+        quantity: 1,
+        customization: customization._id,
+      });
+
+      showNotification("Customization saved and added to cart.", "success");
+
+      setTimeout(() => {
+        navigate("/cart");
+      }, 700);
+    } catch (error) {
+      console.error("Customization error:", error);
+
+      showNotification(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to save customization.",
+        "error"
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) {
-    return (
-      <Loader text="Loading customizer..." />
-    );
+    return <Loader text="Loading customizer..." />;
   }
 
   if (!product) {
@@ -497,9 +473,8 @@ const Customizer = () => {
             </h1>
 
             <p className="mt-3 max-w-xl text-sm leading-6 text-gray-500">
-              Choose your size and color,
-              then add text or a design to
-              create your own T-shirt.
+              Choose your size and color, then add text or a design to create
+              your own T-shirt.
             </p>
           </div>
         </div>
@@ -514,18 +489,12 @@ const Customizer = () => {
                   </h2>
 
                   <p className="mt-1 text-xs text-gray-500">
-                    See how your design looks
-                    on the T-shirt.
+                    See how your design looks on the T-shirt.
                   </p>
                 </div>
 
                 <span className="text-base font-semibold text-gray-900">
-                  ₹
-                  {Number(
-                    product.price || 0
-                  ).toLocaleString(
-                    "en-IN"
-                  )}
+                  ₹{Number(product.price || 0).toLocaleString("en-IN")}
                 </span>
               </div>
 
@@ -548,9 +517,9 @@ const Customizer = () => {
                       </div>
                     )}
 
-                    {userDesignPreview ? (
+                    {activeUserDesignPreview ? (
                       <img
-                        src={userDesignPreview}
+                        src={activeUserDesignPreview}
                         alt="Uploaded Design"
                         className="absolute h-auto max-w-[35%] object-contain"
                         style={{
@@ -565,13 +534,9 @@ const Customizer = () => {
                     ) : selectedDesign ? (
                       <img
                         src={
-                          selectedDesign.image ||
-                          selectedDesign.imageUrl
+                          selectedDesign.image || selectedDesign.imageUrl
                         }
-                        alt={
-                          selectedDesign.name ||
-                          "Design"
-                        }
+                        alt={selectedDesign.name || "Design"}
                         className="absolute h-auto max-w-[35%] object-contain"
                         style={{
                           left: `${designPosition.x}%`,
@@ -607,36 +572,26 @@ const Customizer = () => {
 
               <div className="grid grid-cols-3 border-t border-gray-200">
                 <div className="border-r border-gray-200 p-4">
-                  <p className="text-xs text-gray-400">
-                    Size
-                  </p>
+                  <p className="text-xs text-gray-400">Size</p>
 
                   <p className="mt-1 text-sm font-semibold text-gray-900">
-                    {selectedSize ||
-                      "-"}
+                    {selectedSize || "-"}
                   </p>
                 </div>
 
                 <div className="border-r border-gray-200 p-4">
-                  <p className="text-xs text-gray-400">
-                    Color
-                  </p>
+                  <p className="text-xs text-gray-400">Color</p>
 
                   <p className="mt-1 truncate text-sm font-semibold text-gray-900">
-                    {selectedColor ||
-                      "-"}
+                    {selectedColor || "-"}
                   </p>
                 </div>
 
                 <div className="p-4">
-                  <p className="text-xs text-gray-400">
-                    Design
-                  </p>
+                  <p className="text-xs text-gray-400">Design</p>
 
                   <p className="mt-1 truncate text-sm font-semibold text-gray-900">
-                    {userDesignFile
-                      ? userDesignFile.name
-                      : selectedDesign?.name || "None"}
+                    {activeDesignName}
                   </p>
                 </div>
               </div>
@@ -652,63 +607,44 @@ const Customizer = () => {
               </div>
 
               <div className="p-5">
-                <p className="mb-3 text-sm font-medium text-gray-900">
-                  Size
-                </p>
+                <p className="mb-3 text-sm font-medium text-gray-900">Size</p>
 
                 <div className="flex flex-wrap gap-2">
-                  {product.sizes?.map(
-                    (size) => (
-                      <button
-                        key={size}
-                        type="button"
-                        onClick={() =>
-                          setSelectedSize(
-                            size
-                          )
-                        }
-                        className={`min-w-12 border px-4 py-2.5 text-sm ${
-                          selectedSize ===
-                          size
-                            ? "border-black bg-black text-white"
-                            : "border-gray-300 bg-white text-gray-700 hover:border-black"
-                        }`}
-                      >
-                        {size}
-                      </button>
-                    )
-                  )}
+                  {product.sizes?.map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => setSelectedSize(size)}
+                      className={`min-w-12 border px-4 py-2.5 text-sm ${
+                        selectedSize === size
+                          ? "border-black bg-black text-white"
+                          : "border-gray-300 bg-white text-gray-700 hover:border-black"
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
                 </div>
 
                 <div className="mt-6">
-                  <p className="mb-3 text-sm font-medium text-gray-900">
-                    Color
-                  </p>
+                  <p className="mb-3 text-sm font-medium text-gray-900">Color</p>
 
                   <div className="flex flex-wrap gap-2">
-                    {availableColors.length >
-                    0 ? (
-                      availableColors.map(
-                        (color) => (
-                          <button
-                            key={color}
-                            type="button"
-                            onClick={() =>
-                              setSelectedColor(
-                                color
-                              )
-                            }
-                            className={`border px-4 py-2.5 text-sm ${
-                              selectedColor ===
-                              color
-                                ? "border-black bg-black text-white"
-                                : "border-gray-300 bg-white text-gray-700 hover:border-black"
-                            }`}
-                          >
-                            {color}
-                          </button>
-                        )
-                      )
+                    {availableColors.length > 0 ? (
+                      availableColors.map((color) => (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() => setSelectedColor(color)}
+                          className={`border px-4 py-2.5 text-sm ${
+                            selectedColor === color
+                              ? "border-black bg-black text-white"
+                              : "border-gray-300 bg-white text-gray-700 hover:border-black"
+                          }`}
+                        >
+                          {color}
+                        </button>
+                      ))
                     ) : (
                       <p className="text-sm text-gray-400">
                         No colors available
@@ -736,11 +672,7 @@ const Customizer = () => {
                     type="text"
                     value={customText}
                     maxLength={100}
-                    onChange={(event) =>
-                      setCustomText(
-                        event.target.value
-                      )
-                    }
+                    onChange={(event) => setCustomText(event.target.value)}
                     placeholder="Enter your text"
                     className="h-11 w-full border border-gray-300 px-3 text-sm outline-none focus:border-black"
                   />
@@ -756,19 +688,13 @@ const Customizer = () => {
                       Text Color
                     </span>
 
-                    <span className="text-xs text-gray-500">
-                      {textColor}
-                    </span>
+                    <span className="text-xs text-gray-500">{textColor}</span>
                   </div>
 
                   <input
                     type="color"
                     value={textColor}
-                    onChange={(event) =>
-                      setTextColor(
-                        event.target.value
-                      )
-                    }
+                    onChange={(event) => setTextColor(event.target.value)}
                     className="h-10 w-full cursor-pointer border border-gray-300 bg-white p-1"
                   />
                 </div>
@@ -790,11 +716,7 @@ const Customizer = () => {
                     max="60"
                     value={textFontSize}
                     onChange={(event) =>
-                      setTextFontSize(
-                        Number(
-                          event.target.value
-                        )
-                      )
+                      setTextFontSize(Number(event.target.value))
                     }
                     className="w-full"
                   />
@@ -806,9 +728,7 @@ const Customizer = () => {
                       Text Scale
                     </span>
 
-                    <span className="text-xs text-gray-500">
-                      {textScale}x
-                    </span>
+                    <span className="text-xs text-gray-500">{textScale}x</span>
                   </div>
 
                   <input
@@ -818,11 +738,7 @@ const Customizer = () => {
                     step="0.1"
                     value={textScale}
                     onChange={(event) =>
-                      setTextScale(
-                        Number(
-                          event.target.value
-                        )
-                      )
+                      setTextScale(Number(event.target.value))
                     }
                     className="w-full"
                   />
@@ -845,11 +761,7 @@ const Customizer = () => {
                     max="180"
                     value={textRotation}
                     onChange={(event) =>
-                      setTextRotation(
-                        Number(
-                          event.target.value
-                        )
-                      )
+                      setTextRotation(Number(event.target.value))
                     }
                     className="w-full"
                   />
@@ -863,9 +775,7 @@ const Customizer = () => {
                   <div className="grid grid-cols-2 gap-5">
                     <div>
                       <div className="mb-2 flex justify-between">
-                        <span className="text-xs text-gray-500">
-                          Horizontal
-                        </span>
+                        <span className="text-xs text-gray-500">Horizontal</span>
 
                         <span className="text-xs text-gray-500">
                           {textPosition.x}
@@ -876,14 +786,9 @@ const Customizer = () => {
                         type="range"
                         min="0"
                         max="100"
-                        value={
-                          textPosition.x
-                        }
+                        value={textPosition.x}
                         onChange={(event) =>
-                          updateTextPosition(
-                            "x",
-                            event.target.value
-                          )
+                          updateTextPosition("x", event.target.value)
                         }
                         className="w-full"
                       />
@@ -891,9 +796,7 @@ const Customizer = () => {
 
                     <div>
                       <div className="mb-2 flex justify-between">
-                        <span className="text-xs text-gray-500">
-                          Vertical
-                        </span>
+                        <span className="text-xs text-gray-500">Vertical</span>
 
                         <span className="text-xs text-gray-500">
                           {textPosition.y}
@@ -904,14 +807,9 @@ const Customizer = () => {
                         type="range"
                         min="0"
                         max="100"
-                        value={
-                          textPosition.y
-                        }
+                        value={textPosition.y}
                         onChange={(event) =>
-                          updateTextPosition(
-                            "y",
-                            event.target.value
-                          )
+                          updateTextPosition("y", event.target.value)
                         }
                         className="w-full"
                       />
@@ -929,19 +827,9 @@ const Customizer = () => {
                   </h2>
 
                   <p className="mt-1 text-xs text-gray-500">
-                    Upload your own image to use as your design.
+                    Upload up to 2 personal designs (PNG, JPG or WEBP • Max 5 MB).
                   </p>
                 </div>
-
-                {userDesignFile && (
-                  <button
-                    type="button"
-                    onClick={handleRemoveUserDesign}
-                    className="text-xs text-red-600 hover:underline"
-                  >
-                    Remove
-                  </button>
-                )}
               </div>
 
               <div className="p-5">
@@ -951,58 +839,179 @@ const Customizer = () => {
                   </div>
                 )}
 
-                {userDesignPreview ? (
-                  <div className="flex items-center gap-4 border border-gray-200 bg-gray-50 p-3">
-                    <div className="h-16 w-16 flex-shrink-0 overflow-hidden border border-gray-200 bg-white p-1">
-                      <img
-                        src={userDesignPreview}
-                        alt="Uploaded Preview"
-                        className="h-full w-full object-contain"
-                      />
+                {upload1.file && upload2.file && (
+                  <div className="mb-4 text-xs font-medium text-gray-500">
+                    Maximum 2 designs allowed.
+                  </div>
+                )}
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {/* Upload Slot 1 */}
+                  <div
+                    className={`border p-3 ${
+                      activeDesignSource?.type === "upload1"
+                        ? "border-black bg-gray-50"
+                        : "border-gray-200 bg-white"
+                    }`}
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-gray-900">
+                        Upload 1
+                      </span>
+                      {upload1.file && (
+                        <span className="text-[10px] text-gray-500">
+                          {activeDesignSource?.type === "upload1"
+                            ? "ACTIVE"
+                            : ""}
+                        </span>
+                      )}
                     </div>
 
-                    <div className="min-w-0 flex-1 text-xs">
-                      <p className="truncate font-medium text-gray-900">
-                        {userDesignFile?.name || "Uploaded Image"}
-                      </p>
+                    {upload1.preview ? (
+                      <div>
+                        <div
+                          className="flex cursor-pointer items-center gap-3"
+                          onClick={() => selectUploadAsActive(1)}
+                        >
+                          <div className="h-16 w-16 shrink-0 overflow-hidden border border-gray-200 bg-white p-1">
+                            <img
+                              src={upload1.preview}
+                              alt="Upload 1 Preview"
+                              className="h-full w-full object-contain"
+                            />
+                          </div>
 
-                      <p className="mt-0.5 text-gray-500">
-                        {userDesignFile?.size
-                          ? `${(userDesignFile.size / (1024 * 1024)).toFixed(2)} MB`
-                          : ""}
-                      </p>
+                          <div className="min-w-0 flex-1 text-xs">
+                            <p className="truncate font-medium text-gray-900">
+                              {upload1.file.name}
+                            </p>
+                            <p className="mt-0.5 text-gray-500">
+                              {(upload1.file.size / (1024 * 1024)).toFixed(
+                                2
+                              )}{" "}
+                              MB
+                            </p>
+                          </div>
+                        </div>
 
-                      <label className="mt-1.5 inline-block cursor-pointer text-xs font-medium text-black hover:underline">
-                        Replace Image
+                        <div className="mt-3 flex items-center justify-between border-t border-gray-200 pt-2 text-xs">
+                          <label className="cursor-pointer font-medium text-black hover:underline">
+                            Replace Image
+                            <input
+                              type="file"
+                              accept="image/png, image/jpeg, image/jpg, image/webp"
+                              onChange={(e) => handleUserDesignSelect(e, 1)}
+                              className="hidden"
+                            />
+                          </label>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveUserDesign(1)}
+                            className="text-red-600 hover:underline"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label className="flex cursor-pointer flex-col items-center justify-center border border-dashed border-gray-300 py-6 text-center hover:border-gray-400">
+                        <span className="border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-100">
+                          Choose Image
+                        </span>
                         <input
                           type="file"
                           accept="image/png, image/jpeg, image/jpg, image/webp"
-                          onChange={handleUserDesignSelect}
+                          onChange={(e) => handleUserDesignSelect(e, 1)}
                           className="hidden"
                         />
                       </label>
+                    )}
+                  </div>
+
+                  {/* Upload Slot 2 */}
+                  <div
+                    className={`border p-3 ${
+                      activeDesignSource?.type === "upload2"
+                        ? "border-black bg-gray-50"
+                        : "border-gray-200 bg-white"
+                    }`}
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-gray-900">
+                        Upload 2
+                      </span>
+                      {upload2.file && (
+                        <span className="text-[10px] text-gray-500">
+                          {activeDesignSource?.type === "upload2"
+                            ? "ACTIVE"
+                            : ""}
+                        </span>
+                      )}
                     </div>
-                  </div>
-                ) : (
-                  <div>
-                    <label className="flex cursor-pointer flex-col items-center justify-center border border-dashed border-gray-300 bg-gray-50 py-6 text-center hover:border-gray-400">
-                      <span className="border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-800 hover:bg-gray-100">
-                        Choose Image
-                      </span>
 
-                      <span className="mt-2 text-xs text-gray-500">
-                        PNG, JPG or WEBP • Maximum 5 MB
-                      </span>
+                    {upload2.preview ? (
+                      <div>
+                        <div
+                          className="flex cursor-pointer items-center gap-3"
+                          onClick={() => selectUploadAsActive(2)}
+                        >
+                          <div className="h-16 w-16 shrink-0 overflow-hidden border border-gray-200 bg-white p-1">
+                            <img
+                              src={upload2.preview}
+                              alt="Upload 2 Preview"
+                              className="h-full w-full object-contain"
+                            />
+                          </div>
 
-                      <input
-                        type="file"
-                        accept="image/png, image/jpeg, image/jpg, image/webp"
-                        onChange={handleUserDesignSelect}
-                        className="hidden"
-                      />
-                    </label>
+                          <div className="min-w-0 flex-1 text-xs">
+                            <p className="truncate font-medium text-gray-900">
+                              {upload2.file.name}
+                            </p>
+                            <p className="mt-0.5 text-gray-500">
+                              {(upload2.file.size / (1024 * 1024)).toFixed(
+                                2
+                              )}{" "}
+                              MB
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 flex items-center justify-between border-t border-gray-200 pt-2 text-xs">
+                          <label className="cursor-pointer font-medium text-black hover:underline">
+                            Replace Image
+                            <input
+                              type="file"
+                              accept="image/png, image/jpeg, image/jpg, image/webp"
+                              onChange={(e) => handleUserDesignSelect(e, 2)}
+                              className="hidden"
+                            />
+                          </label>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveUserDesign(2)}
+                            className="text-red-600 hover:underline"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label className="flex cursor-pointer flex-col items-center justify-center border border-dashed border-gray-300 py-6 text-center hover:border-gray-400">
+                        <span className="border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-100">
+                          Choose Image
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/png, image/jpeg, image/jpg, image/webp"
+                          onChange={(e) => handleUserDesignSelect(e, 2)}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             </section>
 
@@ -1014,19 +1023,19 @@ const Customizer = () => {
                   </h2>
 
                   <p className="mt-1 text-xs text-gray-500">
-                    Select a design to add to
-                    your T-shirt.
+                    Select a design to add to your T-shirt.
                   </p>
                 </div>
 
                 {selectedDesign && (
                   <button
                     type="button"
-                    onClick={() =>
-                      setSelectedDesign(
-                        null
-                      )
-                    }
+                    onClick={() => {
+                      setSelectedDesign(null);
+                      if (activeDesignSource?.type === "admin") {
+                        setActiveDesignSource(null);
+                      }
+                    }}
                     className="text-xs text-red-600 hover:underline"
                   >
                     Remove
@@ -1035,77 +1044,55 @@ const Customizer = () => {
               </div>
 
               <div className="p-5">
-                <div
-                  className={`transition-all duration-200 ${
-                    userDesignPreview
-                      ? "pointer-events-none blur-[1.5px] opacity-50 select-none"
-                      : ""
-                  }`}
-                >
-                  <div className="grid grid-cols-2 gap-3">
-                    {designs.length === 0 ? (
-                      <div className="col-span-2 border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">
-                        No designs available.
-                      </div>
-                    ) : (
-                      designs.map(
-                        (design) => {
-                          const image =
-                            design.image ||
-                            design.imageUrl;
+                <div className="grid grid-cols-2 gap-3">
+                  {designs.length === 0 ? (
+                    <div className="col-span-2 border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">
+                      No designs available.
+                    </div>
+                  ) : (
+                    designs.map((design) => {
+                      const image = design.image || design.imageUrl;
+                      const selected =
+                        activeDesignSource?.type === "admin" &&
+                        selectedDesign?._id === design._id;
 
-                          const selected =
-                            selectedDesign?._id ===
-                            design._id;
-
-                          return (
-                            <button
-                              key={design._id}
-                              type="button"
-                              onClick={() => {
-                                setSelectedDesign(design);
-                                if (userDesignPreview) {
-                                  handleRemoveUserDesign();
-                                }
-                              }}
-                              className={`border p-2 text-left ${
-                                selected
-                                  ? "border-black"
-                                  : "border-gray-200 hover:border-gray-500"
-                              }`}
-                            >
-                              <div className="aspect-square overflow-hidden bg-gray-100">
-                                {image ? (
-                                  <img
-                                    src={image}
-                                    alt={
-                                      design.name ||
-                                      "Design"
-                                    }
-                                    className="h-full w-full object-contain"
-                                  />
-                                ) : (
-                                  <div className="flex h-full items-center justify-center text-xs text-gray-400">
-                                    No image
-                                  </div>
-                                )}
+                      return (
+                        <button
+                          key={design._id}
+                          type="button"
+                          onClick={() => selectAdminDesignAsActive(design)}
+                          className={`border p-2 text-left transition-all ${
+                            selected
+                              ? "border-black ring-1 ring-black"
+                              : "border-gray-200 hover:border-gray-500"
+                          }`}
+                        >
+                          <div className="aspect-square overflow-hidden bg-gray-100">
+                            {image ? (
+                              <img
+                                src={image}
+                                alt={design.name || "Design"}
+                                className="h-full w-full object-contain"
+                              />
+                            ) : (
+                              <div className="flex h-full items-center justify-center text-xs text-gray-400">
+                                No image
                               </div>
+                            )}
+                          </div>
 
-                              <p className="mt-2 truncate text-xs font-medium text-gray-900">
-                                {design.name ||
-                                  "Unnamed Design"}
-                              </p>
-                            </button>
-                          );
-                        }
-                      )
-                    )}
-                  </div>
+                          <p className="mt-2 truncate text-xs font-medium text-gray-900">
+                            {design.name || "Unnamed Design"}
+                          </p>
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
 
                 <div
                   className={`mt-6 ${
-                    selectedDesign || userDesignPreview
+                    selectedDesign || activeUserDesignPreview
                       ? ""
                       : "opacity-50"
                   }`}
@@ -1126,13 +1113,9 @@ const Customizer = () => {
                     max="3.0"
                     step="0.1"
                     value={designScale}
-                    disabled={!selectedDesign && !userDesignPreview}
+                    disabled={!selectedDesign && !activeUserDesignPreview}
                     onChange={(event) =>
-                      setDesignScale(
-                        Number(
-                          event.target.value
-                        )
-                      )
+                      setDesignScale(Number(event.target.value))
                     }
                     className="w-full"
                   />
@@ -1140,7 +1123,7 @@ const Customizer = () => {
 
                 <div
                   className={`mt-5 ${
-                    selectedDesign || userDesignPreview
+                    selectedDesign || activeUserDesignPreview
                       ? ""
                       : "opacity-50"
                   }`}
@@ -1160,13 +1143,9 @@ const Customizer = () => {
                     min="-180"
                     max="180"
                     value={designRotation}
-                    disabled={!selectedDesign && !userDesignPreview}
+                    disabled={!selectedDesign && !activeUserDesignPreview}
                     onChange={(event) =>
-                      setDesignRotation(
-                        Number(
-                          event.target.value
-                        )
-                      )
+                      setDesignRotation(Number(event.target.value))
                     }
                     className="w-full"
                   />
@@ -1174,7 +1153,7 @@ const Customizer = () => {
 
                 <div
                   className={`mt-6 ${
-                    selectedDesign || userDesignPreview
+                    selectedDesign || activeUserDesignPreview
                       ? ""
                       : "opacity-50"
                   }`}
@@ -1199,15 +1178,10 @@ const Customizer = () => {
                         type="range"
                         min="0"
                         max="100"
-                        value={
-                          designPosition.x
-                        }
-                        disabled={!selectedDesign && !userDesignPreview}
+                        value={designPosition.x}
+                        disabled={!selectedDesign && !activeUserDesignPreview}
                         onChange={(event) =>
-                          updateDesignPosition(
-                            "x",
-                            event.target.value
-                          )
+                          updateDesignPosition("x", event.target.value)
                         }
                         className="w-full"
                       />
@@ -1215,9 +1189,7 @@ const Customizer = () => {
 
                     <div>
                       <div className="mb-2 flex justify-between">
-                        <span className="text-xs text-gray-500">
-                          Vertical
-                        </span>
+                        <span className="text-xs text-gray-500">Vertical</span>
 
                         <span className="text-xs text-gray-500">
                           {designPosition.y}
@@ -1228,15 +1200,10 @@ const Customizer = () => {
                         type="range"
                         min="0"
                         max="100"
-                        value={
-                          designPosition.y
-                        }
-                        disabled={!selectedDesign && !userDesignPreview}
+                        value={designPosition.y}
+                        disabled={!selectedDesign && !activeUserDesignPreview}
                         onChange={(event) =>
-                          updateDesignPosition(
-                            "y",
-                            event.target.value
-                          )
+                          updateDesignPosition("y", event.target.value)
                         }
                         className="w-full"
                       />
@@ -1248,31 +1215,20 @@ const Customizer = () => {
 
             <section className="border border-gray-200 bg-white p-5">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">
-                  Product Price
-                </span>
+                <span className="text-sm text-gray-500">Product Price</span>
 
                 <span className="text-xl font-semibold text-gray-900">
-                  ₹
-                  {Number(
-                    product.price || 0
-                  ).toLocaleString(
-                    "en-IN"
-                  )}
+                  ₹{Number(product.price || 0).toLocaleString("en-IN")}
                 </span>
               </div>
 
               <button
                 type="button"
-                onClick={
-                  handleSaveAndAddToCart
-                }
+                onClick={handleSaveAndAddToCart}
                 disabled={saving}
                 className="mt-5 w-full bg-black px-5 py-3.5 text-sm font-semibold text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {saving
-                  ? "Saving..."
-                  : "Save & Add to Cart"}
+                {saving ? "Saving..." : "Save & Add to Cart"}
               </button>
             </section>
           </div>
