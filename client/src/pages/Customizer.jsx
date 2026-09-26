@@ -1035,64 +1035,72 @@ const Customizer = () => {
               </div>
 
               <div className="p-5">
-                <div className="grid grid-cols-2 gap-3">
-                  {designs.length === 0 ? (
-                    <div className="col-span-2 border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">
-                      No designs available.
-                    </div>
-                  ) : (
-                    designs.map(
-                      (design) => {
-                        const image =
-                          design.image ||
-                          design.imageUrl;
+                <div
+                  className={`transition-all duration-200 ${
+                    userDesignPreview
+                      ? "pointer-events-none blur-[1.5px] opacity-50 select-none"
+                      : ""
+                  }`}
+                >
+                  <div className="grid grid-cols-2 gap-3">
+                    {designs.length === 0 ? (
+                      <div className="col-span-2 border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">
+                        No designs available.
+                      </div>
+                    ) : (
+                      designs.map(
+                        (design) => {
+                          const image =
+                            design.image ||
+                            design.imageUrl;
 
-                        const selected =
-                          selectedDesign?._id ===
-                          design._id;
+                          const selected =
+                            selectedDesign?._id ===
+                            design._id;
 
-                        return (
-                          <button
-                            key={design._id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedDesign(design);
-                              if (userDesignPreview) {
-                                handleRemoveUserDesign();
-                              }
-                            }}
-                            className={`border p-2 text-left ${
-                              selected
-                                ? "border-black"
-                                : "border-gray-200 hover:border-gray-500"
-                            }`}
-                          >
-                            <div className="aspect-square overflow-hidden bg-gray-100">
-                              {image ? (
-                                <img
-                                  src={image}
-                                  alt={
-                                    design.name ||
-                                    "Design"
-                                  }
-                                  className="h-full w-full object-contain"
-                                />
-                              ) : (
-                                <div className="flex h-full items-center justify-center text-xs text-gray-400">
-                                  No image
-                                </div>
-                              )}
-                            </div>
+                          return (
+                            <button
+                              key={design._id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedDesign(design);
+                                if (userDesignPreview) {
+                                  handleRemoveUserDesign();
+                                }
+                              }}
+                              className={`border p-2 text-left ${
+                                selected
+                                  ? "border-black"
+                                  : "border-gray-200 hover:border-gray-500"
+                              }`}
+                            >
+                              <div className="aspect-square overflow-hidden bg-gray-100">
+                                {image ? (
+                                  <img
+                                    src={image}
+                                    alt={
+                                      design.name ||
+                                      "Design"
+                                    }
+                                    className="h-full w-full object-contain"
+                                  />
+                                ) : (
+                                  <div className="flex h-full items-center justify-center text-xs text-gray-400">
+                                    No image
+                                  </div>
+                                )}
+                              </div>
 
-                            <p className="mt-2 truncate text-xs font-medium text-gray-900">
-                              {design.name ||
-                                "Unnamed Design"}
-                            </p>
-                          </button>
-                        );
-                      }
-                    )
-                  )}
+                              <p className="mt-2 truncate text-xs font-medium text-gray-900">
+                                {design.name ||
+                                  "Unnamed Design"}
+                              </p>
+                            </button>
+                          );
+                        }
+                      )
+                    )}
+                  </div>
                 </div>
 
                 <div
