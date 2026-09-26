@@ -596,28 +596,28 @@ const Customizer = () => {
         </div>
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
-          {/* Left Column: T-Shirt Canvas Preview */}
-          <section className="lg:sticky lg:top-6 lg:self-start">
+          {/* Left Column: T-Shirt Canvas Preview (Sticky on Mobile & Desktop) */}
+          <section className="sticky top-0 z-30 bg-white shadow-md sm:shadow-none lg:top-6 lg:self-start">
             <div className="border border-gray-200 bg-white">
-              <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+              <div className="flex items-center justify-between border-b border-gray-200 px-4 py-2.5 sm:px-5 sm:py-4">
                 <div>
-                  <h2 className="text-base font-semibold text-gray-900">
+                  <h2 className="text-sm font-semibold text-gray-900 sm:text-base">
                     Live Preview
                   </h2>
 
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="hidden text-xs text-gray-500 sm:block sm:mt-1">
                     See how your designs and text look on the T-shirt.
                   </p>
                 </div>
 
-                <span className="text-base font-semibold text-gray-900">
+                <span className="text-sm font-semibold text-gray-900 sm:text-base">
                   ₹{Number(product.price || 0).toLocaleString("en-IN")}
                 </span>
               </div>
 
-              <div className="bg-gray-100 p-5 sm:p-8">
-                <div className="mx-auto flex aspect-square w-full max-w-xl items-center justify-center">
-                  <div className="relative aspect-square w-full max-w-md overflow-hidden bg-white">
+              <div className="bg-gray-100 p-2 sm:p-8">
+                <div className="mx-auto flex aspect-square w-full max-w-[220px] xs:max-w-[260px] sm:max-w-xl items-center justify-center">
+                  <div className="relative aspect-square w-full max-w-[200px] xs:max-w-[240px] sm:max-w-md overflow-hidden bg-white shadow-sm">
                     {previewImage ? (
                       <img
                         src={previewImage}
@@ -698,27 +698,27 @@ const Customizer = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 border-t border-gray-200">
-                <div className="border-r border-gray-200 p-4">
-                  <p className="text-xs text-gray-400">Size</p>
+              <div className="grid grid-cols-3 border-t border-gray-200 text-center sm:text-left">
+                <div className="border-r border-gray-200 px-2 py-1.5 sm:p-4">
+                  <p className="text-[10px] text-gray-400 sm:text-xs">Size</p>
 
-                  <p className="mt-1 text-sm font-semibold text-gray-900">
+                  <p className="mt-0.5 truncate text-xs font-semibold text-gray-900 sm:mt-1 sm:text-sm">
                     {selectedSize || "-"}
                   </p>
                 </div>
 
-                <div className="border-r border-gray-200 p-4">
-                  <p className="text-xs text-gray-400">Color</p>
+                <div className="border-r border-gray-200 px-2 py-1.5 sm:p-4">
+                  <p className="text-[10px] text-gray-400 sm:text-xs">Color</p>
 
-                  <p className="mt-1 truncate text-sm font-semibold text-gray-900">
+                  <p className="mt-0.5 truncate text-xs font-semibold text-gray-900 sm:mt-1 sm:text-sm">
                     {selectedColor || "-"}
                   </p>
                 </div>
 
-                <div className="p-4">
-                  <p className="text-xs text-gray-400">Design</p>
+                <div className="px-2 py-1.5 sm:p-4">
+                  <p className="text-[10px] text-gray-400 sm:text-xs">Design</p>
 
-                  <p className="mt-1 truncate text-sm font-semibold text-gray-900">
+                  <p className="mt-0.5 truncate text-xs font-semibold text-gray-900 sm:mt-1 sm:text-sm">
                     {activeDesignName}
                   </p>
                 </div>
