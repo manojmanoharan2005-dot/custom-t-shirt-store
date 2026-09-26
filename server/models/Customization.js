@@ -112,8 +112,8 @@ const customizationSchema = new mongoose.Schema(
     designScale: {
       type: Number,
       default: 1,
-      min: 0.5,
-      max: 2,
+      min: 0.2,
+      max: 3,
     },
 
     designRotation: {
@@ -121,6 +121,50 @@ const customizationSchema = new mongoose.Schema(
       default: 0,
       min: -180,
       max: 180,
+    },
+
+    userDesignPosition: {
+      x: {
+        type: Number,
+        default: 50,
+        min: 0,
+        max: 100,
+      },
+      y: {
+        type: Number,
+        default: 40,
+        min: 0,
+        max: 100,
+      },
+    },
+
+    userDesignScale: {
+      type: Number,
+      default: 1,
+      min: 0.2,
+      max: 3,
+    },
+
+    adminDesignPosition: {
+      x: {
+        type: Number,
+        default: 50,
+        min: 0,
+        max: 100,
+      },
+      y: {
+        type: Number,
+        default: 65,
+        min: 0,
+        max: 100,
+      },
+    },
+
+    adminDesignScale: {
+      type: Number,
+      default: 1,
+      min: 0.2,
+      max: 3,
     },
 
     imageUrl: {

@@ -37,17 +37,22 @@ const Customizer = () => {
   });
 
   const [selectedDesign, setSelectedDesign] = useState(null);
-  const [designScale, setDesignScale] = useState(1);
-  const [designRotation, setDesignRotation] = useState(0);
-
-  const [designPosition, setDesignPosition] = useState({
+  const [adminDesignScale, setAdminDesignScale] = useState(1);
+  const [adminDesignPosition, setAdminDesignPosition] = useState({
     x: 50,
     y: 65,
   });
 
   const [upload1, setUpload1] = useState({ file: null, preview: "" });
   const [upload2, setUpload2] = useState({ file: null, preview: "" });
-  const [activeDesignSource, setActiveDesignSource] = useState(null);
+  const [activeUploadedSlot, setActiveUploadedSlot] = useState(null);
+
+  const [userDesignScale, setUserDesignScale] = useState(1);
+  const [userDesignPosition, setUserDesignPosition] = useState({
+    x: 50,
+    y: 35,
+  });
+
   const [userDesignError, setUserDesignError] = useState("");
 
   const [loading, setLoading] = useState(true);
@@ -88,13 +93,11 @@ const Customizer = () => {
     if (slotIndex === 1) {
       if (upload1.preview) URL.revokeObjectURL(upload1.preview);
       setUpload1({ file, preview: newPreview });
-      setActiveDesignSource({ type: "upload1" });
-      setSelectedDesign(null);
+      setActiveUploadedSlot(1);
     } else {
       if (upload2.preview) URL.revokeObjectURL(upload2.preview);
       setUpload2({ file, preview: newPreview });
-      setActiveDesignSource({ type: "upload2" });
-      setSelectedDesign(null);
+      setActiveUploadedSlot(2);
     }
 
     setUserDesignError("");
@@ -104,14 +107,14 @@ const Customizer = () => {
     if (slotIndex === 1) {
       if (upload1.preview) URL.revokeObjectURL(upload1.preview);
       setUpload1({ file: null, preview: "" });
-      if (activeDesignSource?.type === "upload1") {
-        setActiveDesignSource(null);
+      if (activeUploadedSlot === 1) {
+        setActiveUploadedSlot(null);
       }
     } else {
       if (upload2.preview) URL.revokeObjectURL(upload2.preview);
       setUpload2({ file: null, preview: "" });
-      if (activeDesignSource?.type === "upload2") {
-        setActiveDesignSource(null);
+      if (activeUploadedSlot === 2) {
+        setActiveUploadedSlot(null);
       }
     }
     setUserDesignError("");
@@ -119,17 +122,14 @@ const Customizer = () => {
 
   const selectUploadAsActive = (slotIndex) => {
     if (slotIndex === 1 && upload1.file) {
-      setActiveDesignSource({ type: "upload1" });
-      setSelectedDesign(null);
+      setActiveUploadedSlot(1);
     } else if (slotIndex === 2 && upload2.file) {
-      setActiveDesignSource({ type: "upload2" });
-      setSelectedDesign(null);
+      setActiveUploadedSlot(2);
     }
   };
 
   const selectAdminDesignAsActive = (design) => {
     setSelectedDesign(design);
-    setActiveDesignSource({ type: "admin", id: design._id });
   };
 
   const loadData = async () => {
@@ -271,29 +271,38 @@ const Customizer = () => {
     }));
   };
 
-  const updateDesignPosition = (
-    field,
-    value
-  ) => {
-    setDesignPosition((current) => ({
+  const updateUserDesignPosition = (field, value) => {
+    setUserDesignPosition((current) => ({
+      ...current,
+      [field]: Number(value),
+    }));
+  };
+
+  const updateAdminDesignPosition = (field, value) => {
+    setAdminDesignPosition((current) => ({
       ...current,
       [field]: Number(value),
     }));
   };
 
   const activeUpload =
-    activeDesignSource?.type === "upload1"
+    activeUploadedSlot === 1
       ? upload1
-      : activeDesignSource?.type === "upload2"
+      : activeUploadedSlot === 2
         ? upload2
         : null;
 
   const activeUserDesignPreview = activeUpload?.preview || "";
   const activeUserDesignFile = activeUpload?.file || null;
 
-  const activeDesignName = activeUserDesignFile
-    ? activeUserDesignFile.name
-    : selectedDesign?.name || "None";
+  let activeDesignName = "None";
+  if (activeUserDesignFile && selectedDesign) {
+    activeDesignName = `${activeUserDesignFile.name} + ${selectedDesign.name}`;
+  } else if (activeUserDesignFile) {
+    activeDesignName = activeUserDesignFile.name;
+  } else if (selectedDesign) {
+    activeDesignName = selectedDesign.name || "Admin Design";
+  }
 
   const handleSaveAndAddToCart = async () => {
     const productId = product?._id || id;
@@ -350,19 +359,42 @@ const Customizer = () => {
         formData.append("textSize", Number(textFontSize));
         formData.append("textScale", Number(textScale));
         formData.append("textRotation", Number(textRotation));
+
+        if (selectedDesign?._id) {
+          formData.append("design", selectedDesign._id);
+        }
+
+        formData.append(
+          "userDesignPosition",
+          JSON.stringify({
+            x: Number(userDesignPosition.x),
+            y: Number(userDesignPosition.y),
+          })
+        );
+        formData.append("userDesignScale", Number(userDesignScale));
+
+        formData.append(
+          "adminDesignPosition",
+          JSON.stringify({
+            x: Number(adminDesignPosition.x),
+            y: Number(adminDesignPosition.y),
+          })
+        );
+        formData.append("adminDesignScale", Number(adminDesignScale));
+
         formData.append(
           "designPosition",
           JSON.stringify({
-            x: Number(designPosition.x),
-            y: Number(designPosition.y),
+            x: Number(adminDesignPosition.x),
+            y: Number(adminDesignPosition.y),
           })
         );
         formData.append(
           "designSize",
           JSON.stringify({ width: 100, height: 100 })
         );
-        formData.append("designScale", Number(designScale));
-        formData.append("designRotation", Number(designRotation));
+        formData.append("designScale", Number(adminDesignScale));
+        formData.append("designRotation", Number(0));
         formData.append("userDesign", activeUserDesignFile);
 
         customizationData = formData;
@@ -381,16 +413,26 @@ const Customizer = () => {
           textScale: Number(textScale),
           textRotation: Number(textRotation),
           design: selectedDesign?._id || null,
+          userDesignPosition: {
+            x: Number(userDesignPosition.x),
+            y: Number(userDesignPosition.y),
+          },
+          userDesignScale: Number(userDesignScale),
+          adminDesignPosition: {
+            x: Number(adminDesignPosition.x),
+            y: Number(adminDesignPosition.y),
+          },
+          adminDesignScale: Number(adminDesignScale),
           designPosition: {
-            x: Number(designPosition.x),
-            y: Number(designPosition.y),
+            x: Number(adminDesignPosition.x),
+            y: Number(adminDesignPosition.y),
           },
           designSize: {
             width: 100,
             height: 100,
           },
-          designScale: Number(designScale),
-          designRotation: Number(designRotation),
+          designScale: Number(adminDesignScale),
+          designRotation: 0,
         };
       }
 
@@ -517,21 +559,22 @@ const Customizer = () => {
                       </div>
                     )}
 
-                    {activeUserDesignPreview ? (
+                    {activeUserDesignPreview && (
                       <img
                         src={activeUserDesignPreview}
                         alt="Uploaded Design"
                         className="absolute h-auto max-w-[35%] object-contain"
                         style={{
-                          left: `${designPosition.x}%`,
-                          top: `${designPosition.y}%`,
+                          left: `${userDesignPosition.x}%`,
+                          top: `${userDesignPosition.y}%`,
                           transform:
                             `translate(-50%, -50%) ` +
-                            `scale(${designScale}) ` +
-                            `rotate(${designRotation}deg)`,
+                            `scale(${userDesignScale})`,
                         }}
                       />
-                    ) : selectedDesign ? (
+                    )}
+
+                    {selectedDesign && (
                       <img
                         src={
                           selectedDesign.image || selectedDesign.imageUrl
@@ -539,15 +582,14 @@ const Customizer = () => {
                         alt={selectedDesign.name || "Design"}
                         className="absolute h-auto max-w-[35%] object-contain"
                         style={{
-                          left: `${designPosition.x}%`,
-                          top: `${designPosition.y}%`,
+                          left: `${adminDesignPosition.x}%`,
+                          top: `${adminDesignPosition.y}%`,
                           transform:
                             `translate(-50%, -50%) ` +
-                            `scale(${designScale}) ` +
-                            `rotate(${designRotation}deg)`,
+                            `scale(${adminDesignScale})`,
                         }}
                       />
-                    ) : null}
+                    )}
 
                     {customText && (
                       <div
@@ -849,7 +891,7 @@ const Customizer = () => {
                   {/* Upload Slot 1 */}
                   <div
                     className={`border p-3 ${
-                      activeDesignSource?.type === "upload1"
+                      activeUploadedSlot === 1
                         ? "border-black bg-gray-50"
                         : "border-gray-200 bg-white"
                     }`}
@@ -859,10 +901,8 @@ const Customizer = () => {
                         Upload 1
                       </span>
                       {upload1.file && (
-                        <span className="text-[10px] text-gray-500">
-                          {activeDesignSource?.type === "upload1"
-                            ? "ACTIVE"
-                            : ""}
+                        <span className="text-[10px] font-semibold text-gray-500">
+                          {activeUploadedSlot === 1 ? "ACTIVE" : ""}
                         </span>
                       )}
                     </div>
@@ -932,7 +972,7 @@ const Customizer = () => {
                   {/* Upload Slot 2 */}
                   <div
                     className={`border p-3 ${
-                      activeDesignSource?.type === "upload2"
+                      activeUploadedSlot === 2
                         ? "border-black bg-gray-50"
                         : "border-gray-200 bg-white"
                     }`}
@@ -942,10 +982,8 @@ const Customizer = () => {
                         Upload 2
                       </span>
                       {upload2.file && (
-                        <span className="text-[10px] text-gray-500">
-                          {activeDesignSource?.type === "upload2"
-                            ? "ACTIVE"
-                            : ""}
+                        <span className="text-[10px] font-semibold text-gray-500">
+                          {activeUploadedSlot === 2 ? "ACTIVE" : ""}
                         </span>
                       )}
                     </div>
@@ -1030,12 +1068,7 @@ const Customizer = () => {
                 {selectedDesign && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setSelectedDesign(null);
-                      if (activeDesignSource?.type === "admin") {
-                        setActiveDesignSource(null);
-                      }
-                    }}
+                    onClick={() => setSelectedDesign(null)}
                     className="text-xs text-red-600 hover:underline"
                   >
                     Remove
@@ -1052,9 +1085,7 @@ const Customizer = () => {
                   ) : (
                     designs.map((design) => {
                       const image = design.image || design.imageUrl;
-                      const selected =
-                        activeDesignSource?.type === "admin" &&
-                        selectedDesign?._id === design._id;
+                      const isSelected = selectedDesign?._id === design._id;
 
                       return (
                         <button
@@ -1062,7 +1093,7 @@ const Customizer = () => {
                           type="button"
                           onClick={() => selectAdminDesignAsActive(design)}
                           className={`border p-2 text-left transition-all ${
-                            selected
+                            isSelected
                               ? "border-black ring-1 ring-black"
                               : "border-gray-200 hover:border-gray-500"
                           }`}
@@ -1090,125 +1121,139 @@ const Customizer = () => {
                   )}
                 </div>
 
-                <div
-                  className={`mt-6 ${
-                    selectedDesign || activeUserDesignPreview
-                      ? ""
-                      : "opacity-50"
-                  }`}
-                >
-                  <div className="mb-2 flex justify-between">
-                    <span className="text-sm font-medium text-gray-900">
-                      Design Scale
-                    </span>
+                {/* Independent Design Controls Section */}
+                <div className="mt-8 space-y-6 border-t border-gray-200 pt-6">
+                  {/* User Design Controls */}
+                  {activeUserDesignPreview && (
+                    <div className="border border-gray-200 bg-gray-50/50 p-4">
+                      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-700">
+                        User Design Controls (Upload {activeUploadedSlot})
+                      </p>
 
-                    <span className="text-xs text-gray-500">
-                      {designScale}x
-                    </span>
-                  </div>
-
-                  <input
-                    type="range"
-                    min="0.2"
-                    max="3.0"
-                    step="0.1"
-                    value={designScale}
-                    disabled={!selectedDesign && !activeUserDesignPreview}
-                    onChange={(event) =>
-                      setDesignScale(Number(event.target.value))
-                    }
-                    className="w-full"
-                  />
-                </div>
-
-                <div
-                  className={`mt-5 ${
-                    selectedDesign || activeUserDesignPreview
-                      ? ""
-                      : "opacity-50"
-                  }`}
-                >
-                  <div className="mb-2 flex justify-between">
-                    <span className="text-sm font-medium text-gray-900">
-                      Design Rotation
-                    </span>
-
-                    <span className="text-xs text-gray-500">
-                      {designRotation}°
-                    </span>
-                  </div>
-
-                  <input
-                    type="range"
-                    min="-180"
-                    max="180"
-                    value={designRotation}
-                    disabled={!selectedDesign && !activeUserDesignPreview}
-                    onChange={(event) =>
-                      setDesignRotation(Number(event.target.value))
-                    }
-                    className="w-full"
-                  />
-                </div>
-
-                <div
-                  className={`mt-6 ${
-                    selectedDesign || activeUserDesignPreview
-                      ? ""
-                      : "opacity-50"
-                  }`}
-                >
-                  <p className="mb-3 text-sm font-medium text-gray-900">
-                    Design Position
-                  </p>
-
-                  <div className="grid grid-cols-2 gap-5">
-                    <div>
-                      <div className="mb-2 flex justify-between">
-                        <span className="text-xs text-gray-500">
-                          Horizontal
-                        </span>
-
-                        <span className="text-xs text-gray-500">
-                          {designPosition.x}
-                        </span>
+                      <div>
+                        <div className="mb-1 flex justify-between text-xs">
+                          <span className="font-medium text-gray-800">Size</span>
+                          <span className="text-gray-500">{userDesignScale}x</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.2"
+                          max="3.0"
+                          step="0.1"
+                          value={userDesignScale}
+                          onChange={(event) =>
+                            setUserDesignScale(Number(event.target.value))
+                          }
+                          className="w-full"
+                        />
                       </div>
 
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={designPosition.x}
-                        disabled={!selectedDesign && !activeUserDesignPreview}
-                        onChange={(event) =>
-                          updateDesignPosition("x", event.target.value)
-                        }
-                        className="w-full"
-                      />
+                      <div className="mt-4 grid grid-cols-2 gap-4">
+                        <div>
+                          <div className="mb-1 flex justify-between text-xs">
+                            <span className="text-gray-600">Horizontal</span>
+                            <span className="text-gray-500">{userDesignPosition.x}</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={userDesignPosition.x}
+                            onChange={(event) =>
+                              updateUserDesignPosition("x", event.target.value)
+                            }
+                            className="w-full"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="mb-1 flex justify-between text-xs">
+                            <span className="text-gray-600">Vertical</span>
+                            <span className="text-gray-500">{userDesignPosition.y}</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={userDesignPosition.y}
+                            onChange={(event) =>
+                              updateUserDesignPosition("y", event.target.value)
+                            }
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
                     </div>
+                  )}
 
-                    <div>
-                      <div className="mb-2 flex justify-between">
-                        <span className="text-xs text-gray-500">Vertical</span>
+                  {/* Admin Design Controls */}
+                  {selectedDesign && (
+                    <div className="border border-gray-200 bg-gray-50/50 p-4">
+                      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-700">
+                        Admin Design Controls ({selectedDesign.name || "Selected"})
+                      </p>
 
-                        <span className="text-xs text-gray-500">
-                          {designPosition.y}
-                        </span>
+                      <div>
+                        <div className="mb-1 flex justify-between text-xs">
+                          <span className="font-medium text-gray-800">Size</span>
+                          <span className="text-gray-500">{adminDesignScale}x</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.2"
+                          max="3.0"
+                          step="0.1"
+                          value={adminDesignScale}
+                          onChange={(event) =>
+                            setAdminDesignScale(Number(event.target.value))
+                          }
+                          className="w-full"
+                        />
                       </div>
 
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={designPosition.y}
-                        disabled={!selectedDesign && !activeUserDesignPreview}
-                        onChange={(event) =>
-                          updateDesignPosition("y", event.target.value)
-                        }
-                        className="w-full"
-                      />
+                      <div className="mt-4 grid grid-cols-2 gap-4">
+                        <div>
+                          <div className="mb-1 flex justify-between text-xs">
+                            <span className="text-gray-600">Horizontal</span>
+                            <span className="text-gray-500">{adminDesignPosition.x}</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={adminDesignPosition.x}
+                            onChange={(event) =>
+                              updateAdminDesignPosition("x", event.target.value)
+                            }
+                            className="w-full"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="mb-1 flex justify-between text-xs">
+                            <span className="text-gray-600">Vertical</span>
+                            <span className="text-gray-500">{adminDesignPosition.y}</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={adminDesignPosition.y}
+                            onChange={(event) =>
+                              updateAdminDesignPosition("y", event.target.value)
+                            }
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {!activeUserDesignPreview && !selectedDesign && (
+                    <p className="text-center text-xs text-gray-400">
+                      Select or upload a design to customize size and position.
+                    </p>
+                  )}
                 </div>
               </div>
             </section>

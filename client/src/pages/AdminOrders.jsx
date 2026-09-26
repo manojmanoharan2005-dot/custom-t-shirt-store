@@ -46,6 +46,7 @@ const AdminOrders = () => {
     useState("");
 
   const [previewImageModal, setPreviewImageModal] = useState(null);
+  const [previewTShirtModal, setPreviewTShirtModal] = useState(null);
 
   const handleDownloadImage = async (url, fileName) => {
     try {
@@ -1389,73 +1390,56 @@ const AdminOrders = () => {
 
                               {customization?.design && (
                                 <div className="mt-4 rounded-lg bg-white p-4">
-                                  <p className="mb-3 font-bold">
-                                    Selected Design
+                                  <p className="mb-3 font-bold text-gray-900">
+                                    Admin Design Details
                                   </p>
 
                                   <div className="flex flex-col gap-4 sm:flex-row">
-                                    {customization
-                                      .design
-                                      ?.image && (
-                                      <div className="h-28 w-28 overflow-hidden rounded-lg border bg-gray-50">
+                                    {(customization.design.image ||
+                                      customization.design.imageUrl) && (
+                                      <div className="h-28 w-28 shrink-0 overflow-hidden rounded-lg border bg-gray-50 p-1">
                                         <img
                                           src={
-                                            customization
-                                              .design
-                                              .image
+                                            customization.design.image ||
+                                            customization.design.imageUrl
                                           }
-                                          alt="Design"
+                                          alt="Admin Design"
                                           className="h-full w-full object-contain"
                                         />
                                       </div>
                                     )}
 
-                                    <div>
-                                      {customization
-                                        .design
-                                        ?.name && (
-                                        <p className="text-sm">
-                                          <span className="text-gray-500">
-                                            Design:
-                                          </span>{" "}
-                                          <b>
-                                            {
-                                              customization
-                                                .design
-                                                .name
-                                            }
-                                          </b>
-                                        </p>
-                                      )}
+                                    <div className="space-y-1 text-xs">
+                                      <p className="text-sm">
+                                        <span className="text-gray-500">Name:</span>{" "}
+                                        <b>{customization.design.name || "Admin Design"}</b>
+                                      </p>
 
-                                      {customization?.designScale !==
-                                        undefined && (
-                                        <p className="mt-2 text-sm">
-                                          <span className="text-gray-500">
-                                            Scale:
-                                          </span>{" "}
-                                          <b>
-                                            {
-                                              customization.designScale
-                                            }
-                                          </b>
-                                        </p>
-                                      )}
+                                      <p>
+                                        <span className="text-gray-500">Scale:</span>{" "}
+                                        <b>
+                                          {(
+                                            customization.adminDesignScale ??
+                                            customization.designScale ??
+                                            1
+                                          ).toFixed(1)}
+                                          x
+                                        </b>
+                                      </p>
 
-                                      {customization?.designRotation !==
-                                        undefined && (
-                                        <p className="mt-2 text-sm">
-                                          <span className="text-gray-500">
-                                            Rotation:
-                                          </span>{" "}
-                                          <b>
-                                            {
-                                              customization.designRotation
-                                            }
-                                            °
-                                          </b>
-                                        </p>
-                                      )}
+                                      <p>
+                                        <span className="text-gray-500">Position:</span>{" "}
+                                        <b>
+                                          X:{" "}
+                                          {customization.adminDesignPosition?.x ??
+                                            customization.designPosition?.x ??
+                                            50}
+                                          , Y:{" "}
+                                          {customization.adminDesignPosition?.y ??
+                                            customization.designPosition?.y ??
+                                            65}
+                                        </b>
+                                      </p>
                                     </div>
                                   </div>
                                 </div>
@@ -1463,12 +1447,12 @@ const AdminOrders = () => {
 
                               {customization?.imageUrl && (
                                 <div className="mt-4 rounded-lg bg-white p-4">
-                                  <p className="mb-3 font-bold">
-                                    Uploaded Design
+                                  <p className="mb-3 font-bold text-gray-900">
+                                    User Uploaded Design Details
                                   </p>
 
                                   <div className="flex flex-col gap-4 sm:flex-row">
-                                    <div className="h-28 w-28 overflow-hidden rounded-lg border bg-gray-50">
+                                    <div className="h-28 w-28 shrink-0 overflow-hidden rounded-lg border bg-gray-50 p-1">
                                       <img
                                         src={customization.imageUrl}
                                         alt="Uploaded Design"
@@ -1476,17 +1460,37 @@ const AdminOrders = () => {
                                       />
                                     </div>
 
-                                    <div className="flex flex-col justify-between">
-                                      {customization.originalFileName && (
-                                        <p className="text-sm">
-                                          <span className="text-gray-500">
-                                            File Name:
-                                          </span>{" "}
+                                    <div className="flex flex-col justify-between space-y-2 text-xs">
+                                      <div>
+                                        {customization.originalFileName && (
+                                          <p className="text-sm">
+                                            <span className="text-gray-500">File Name:</span>{" "}
+                                            <b>{customization.originalFileName}</b>
+                                          </p>
+                                        )}
+
+                                        <p className="mt-1">
+                                          <span className="text-gray-500">Scale:</span>{" "}
                                           <b>
-                                            {customization.originalFileName}
+                                            {(
+                                              customization.userDesignScale ?? 1
+                                            ).toFixed(1)}
+                                            x
                                           </b>
                                         </p>
-                                      )}
+
+                                        <p className="mt-1">
+                                          <span className="text-gray-500">Position:</span>{" "}
+                                          <b>
+                                            X:{" "}
+                                            {customization.userDesignPosition?.x ??
+                                              50}
+                                            , Y:{" "}
+                                            {customization.userDesignPosition?.y ??
+                                              35}
+                                          </b>
+                                        </p>
+                                      </div>
 
                                       <div className="mt-3 flex flex-wrap gap-2">
                                         <button
@@ -1501,7 +1505,7 @@ const AdminOrders = () => {
                                           }
                                           className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
                                         >
-                                          Preview
+                                          Preview Image
                                         </button>
 
                                         <button
@@ -1515,13 +1519,29 @@ const AdminOrders = () => {
                                           }
                                           className="rounded-lg bg-black px-3 py-1.5 text-xs font-semibold text-white hover:bg-gray-800"
                                         >
-                                          Download
+                                          Download Image
                                         </button>
                                       </div>
                                     </div>
                                   </div>
                                 </div>
                               )}
+
+                              <div className="mt-4 border-t border-purple-200 pt-3">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setPreviewTShirtModal({
+                                      baseImage: image,
+                                      customization,
+                                      item,
+                                    })
+                                  }
+                                  className="w-full rounded-lg bg-purple-700 px-4 py-2.5 text-xs font-semibold text-white hover:bg-purple-800"
+                                >
+                                  View Final T-Shirt Preview
+                                </button>
+                              </div>
                             </div>
                           )}
 
@@ -1696,6 +1716,138 @@ const AdminOrders = () => {
                 className="rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {previewTShirtModal && (
+        <div
+          className="fixed inset-0 z-70 flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setPreviewTShirtModal(null)}
+        >
+          <div
+            className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b pb-4">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  Final T-Shirt Customization Preview
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Customer's configured design layout
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPreviewTShirtModal(null)}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-lg text-gray-600 hover:bg-gray-200"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="my-6 flex items-center justify-center">
+              <div className="relative aspect-square w-full max-w-md overflow-hidden rounded-xl border border-gray-200 bg-white">
+                {previewTShirtModal.baseImage ? (
+                  <img
+                    src={previewTShirtModal.baseImage}
+                    alt="T-Shirt Base"
+                    className="absolute inset-0 h-full w-full object-contain"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center text-sm text-gray-400">
+                    No base image
+                  </div>
+                )}
+
+                {/* User Uploaded Design Layer */}
+                {previewTShirtModal.customization?.imageUrl && (
+                  <img
+                    src={previewTShirtModal.customization.imageUrl}
+                    alt="User Uploaded Design"
+                    className="absolute h-auto max-w-[35%] object-contain"
+                    style={{
+                      left: `${
+                        previewTShirtModal.customization.userDesignPosition?.x ?? 50
+                      }%`,
+                      top: `${
+                        previewTShirtModal.customization.userDesignPosition?.y ?? 35
+                      }%`,
+                      transform: `translate(-50%, -50%) scale(${
+                        previewTShirtModal.customization.userDesignScale ?? 1
+                      })`,
+                    }}
+                  />
+                )}
+
+                {/* Admin Design Layer */}
+                {previewTShirtModal.customization?.design && (
+                  <img
+                    src={
+                      previewTShirtModal.customization.design.image ||
+                      previewTShirtModal.customization.design.imageUrl
+                    }
+                    alt="Admin Design"
+                    className="absolute h-auto max-w-[35%] object-contain"
+                    style={{
+                      left: `${
+                        previewTShirtModal.customization.adminDesignPosition?.x ??
+                        previewTShirtModal.customization.designPosition?.x ??
+                        50
+                      }%`,
+                      top: `${
+                        previewTShirtModal.customization.adminDesignPosition?.y ??
+                        previewTShirtModal.customization.designPosition?.y ??
+                        65
+                      }%`,
+                      transform: `translate(-50%, -50%) scale(${
+                        previewTShirtModal.customization.adminDesignScale ??
+                        previewTShirtModal.customization.designScale ??
+                        1
+                      })`,
+                    }}
+                  />
+                )}
+
+                {/* Custom Text Layer */}
+                {previewTShirtModal.customization?.text && (
+                  <div
+                    className="absolute whitespace-nowrap font-bold"
+                    style={{
+                      left: `${
+                        previewTShirtModal.customization.textPosition?.x ?? 50
+                      }%`,
+                      top: `${
+                        previewTShirtModal.customization.textPosition?.y ?? 50
+                      }%`,
+                      color: previewTShirtModal.customization.textColor || "#000000",
+                      fontSize: `${
+                        previewTShirtModal.customization.textSize || 24
+                      }px`,
+                      transform: `translate(-50%, -50%) scale(${
+                        previewTShirtModal.customization.textScale || 1
+                      }) rotate(${
+                        previewTShirtModal.customization.textRotation || 0
+                      }deg)`,
+                    }}
+                  >
+                    {previewTShirtModal.customization.text}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 border-t pt-4">
+              <button
+                type="button"
+                onClick={() => setPreviewTShirtModal(null)}
+                className="rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Close Preview
               </button>
             </div>
           </div>

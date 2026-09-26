@@ -332,13 +332,13 @@ const OrderDetails = () => {
                         </div>
 
                         {item.customization && (
-                          <div className="mt-3 border-l-2 border-gray-300 pl-3">
+                          <div className="mt-3 space-y-2 border-l-2 border-gray-300 pl-3">
                             <p className="text-xs font-medium text-gray-700">
                               Customized Item
                             </p>
 
                             {item.customization.text && (
-                              <p className="mt-1 text-xs text-gray-500">
+                              <p className="text-xs text-gray-500">
                                 Text:{" "}
                                 <span className="font-medium text-gray-900">
                                   {item.customization.text}
@@ -347,13 +347,33 @@ const OrderDetails = () => {
                             )}
 
                             {item.customization.design && (
-                              <p className="mt-1 text-xs text-gray-500">
-                                Custom design added
-                              </p>
+                              <div className="flex items-center gap-2">
+                                {(item.customization.design.image ||
+                                  item.customization.design.imageUrl) && (
+                                  <img
+                                    src={
+                                      item.customization.design.image ||
+                                      item.customization.design.imageUrl
+                                    }
+                                    alt={
+                                      item.customization.design.name ||
+                                      "Admin Design"
+                                    }
+                                    className="h-10 w-10 border border-gray-200 bg-gray-50 object-contain"
+                                  />
+                                )}
+                                <span className="text-xs text-gray-500">
+                                  Admin Design:{" "}
+                                  <span className="font-medium text-gray-900">
+                                    {item.customization.design.name ||
+                                      "Selected Design"}
+                                  </span>
+                                </span>
+                              </div>
                             )}
 
                             {item.customization.imageUrl && (
-                              <div className="mt-2 flex items-center gap-2">
+                              <div className="flex items-center gap-2">
                                 <img
                                   src={item.customization.imageUrl}
                                   alt="Uploaded Design"
@@ -361,6 +381,12 @@ const OrderDetails = () => {
                                 />
                                 <span className="text-xs text-gray-500">
                                   User Uploaded Design
+                                  {item.customization.originalFileName && (
+                                    <span className="font-medium text-gray-900">
+                                      {" "}
+                                      ({item.customization.originalFileName})
+                                    </span>
+                                  )}
                                 </span>
                               </div>
                             )}

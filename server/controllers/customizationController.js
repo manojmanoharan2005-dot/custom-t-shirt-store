@@ -113,6 +113,11 @@ const createCustomization = async (req, res) => {
     const designScale = rawBody.designScale !== undefined ? Number(rawBody.designScale) : undefined;
     const designRotation = rawBody.designRotation !== undefined ? Number(rawBody.designRotation) : undefined;
 
+    const userDesignPosition = parseJSONIfNeeded(rawBody.userDesignPosition) || designPosition;
+    const userDesignScale = rawBody.userDesignScale !== undefined ? Number(rawBody.userDesignScale) : designScale;
+    const adminDesignPosition = parseJSONIfNeeded(rawBody.adminDesignPosition) || designPosition;
+    const adminDesignScale = rawBody.adminDesignScale !== undefined ? Number(rawBody.adminDesignScale) : designScale;
+
     if (!product || !size || !color) {
       return res.status(400).json({
         message: "Product, size and color are required",
@@ -337,6 +342,14 @@ const createCustomization = async (req, res) => {
         designScale,
 
         designRotation,
+
+        userDesignPosition,
+
+        userDesignScale,
+
+        adminDesignPosition,
+
+        adminDesignScale,
 
         imageUrl,
 
