@@ -48,10 +48,12 @@ const ProductCard = ({ product }) => {
     ];
   }, [product?.variants]);
 
+  const productSlug = product.slug || product._id;
+
   return (
     <article className="group">
       <Link
-        to={`/products/${product._id}`}
+        to={`/products/${productSlug}`}
         className="block overflow-hidden bg-[#e9e7e3]"
       >
         <div className="aspect-square">
@@ -73,7 +75,7 @@ const ProductCard = ({ product }) => {
 
       <div className="pt-4">
         <Link
-          to={`/products/${product._id}`}
+          to={`/products/${productSlug}`}
           className="block"
         >
           <h3 className="truncate text-[15px] font-medium tracking-[-0.01em] text-black transition group-hover:underline group-hover:underline-offset-4">
@@ -111,7 +113,7 @@ const ProductCard = ({ product }) => {
         </div>
 
         <Link
-          to={`/products/${product._id}`}
+          to={`/products/${productSlug}`}
           className="mt-3 inline-flex items-center text-xs font-medium text-black/60 transition group-hover:text-black"
         >
           View Product

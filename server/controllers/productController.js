@@ -1,5 +1,56 @@
+const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const uploadToCloudinary = require("../utils/cloudinaryUpload");
+
+const slugify = (text) => {
+  if (!text) return "";
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w\-]+/g, "")
+    .replace(/\-\-+/g, "-")
+    .replace(/^-+/, "")
+    .replace(/-+$/, "");
+};
+
+const generateUniqueSlug = async (name, currentProductId = null) => {
+  let baseSlug = slugify(name);
+  if (!baseSlug) {
+    baseSlug = "product";
+  }
+  let slug = baseSlug;
+  let count = 1;
+
+  while (true) {
+    const existing = await Product.findOne({
+      slug,
+      _id: { $ne: currentProductId },
+    });
+    if (!existing) {
+      break;
+    }
+    slug = `${baseSlug}-${count}`;
+    count++;
+  }
+  return slug;
+};
+
+const ensureSlugsForExistingProducts = async () => {
+  try {
+    const productsWithoutSlug = await Product.find({
+      $or: [{ slug: { $exists: false } }, { slug: null }, { slug: "" }],
+    });
+    for (const prod of productsWithoutSlug) {
+      const slug = await generateUniqueSlug(prod.name, prod._id);
+      prod.slug = slug;
+      await prod.save();
+    }
+  } catch (err) {
+    console.error("Error ensuring product slugs:", err.message);
+  }
+};
 
 const normalizeArray = (value) => {
   if (Array.isArray(value)) {
@@ -141,8 +192,11 @@ const createProduct = async (req, res) => {
       });
     }
 
+    const slug = await generateUniqueSlug(name.trim());
+
     const product = await Product.create({
       name: name.trim(),
+      slug,
       description: description.trim(),
       price: Number(price),
       category: category.trim(),
@@ -177,6 +231,8 @@ const createProduct = async (req, res) => {
 
 const getProducts = async (req, res) => {
   try {
+    await ensureSlugsForExistingProducts();
+
     const {
       search,
       category,
@@ -269,7 +325,7 @@ const getProducts = async (req, res) => {
       .sort(sortOption);
 
     if (view === "card") {
-      query = query.select("_id name price category variants");
+      query = query.select("_id name price category variants slug");
     }
 
     const parsedPage = Math.max(1, parseInt(page, 10) || 1);
@@ -316,9 +372,14 @@ const getProducts = async (req, res) => {
 
 const getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(
-      req.params.id
-    );
+    await ensureSlugsForExistingProducts();
+
+    const identifier = req.params.id;
+    let product = await Product.findOne({ slug: identifier });
+
+    if (!product && mongoose.Types.ObjectId.isValid(identifier)) {
+      product = await Product.findById(identifier);
+    }
 
     if (!product || !product.isActive) {
       return res.status(404).json({
@@ -366,6 +427,9 @@ const updateProduct = async (req, res) => {
 
     if (name !== undefined) {
       product.name = name.trim();
+      product.slug = await generateUniqueSlug(product.name, product._id);
+    } else if (!product.slug) {
+      product.slug = await generateUniqueSlug(product.name, product._id);
     }
 
     if (description !== undefined) {

@@ -12,7 +12,8 @@ import { useAuth } from "../context/AuthContext";
 import { useNotification } from "../context/NotificationContext";
 
 const ProductDetails = () => {
-  const { id } = useParams();
+  const { slug, id } = useParams();
+  const productIdentifier = slug || id;
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -28,7 +29,7 @@ const ProductDetails = () => {
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState(false);
 
-  const selectionKey = `productSelection_${id}`;
+  const selectionKey = `productSelection_${productIdentifier}`;
 
   const pendingActionHandledRef = useRef(false);
 
@@ -41,7 +42,7 @@ const ProductDetails = () => {
         setLoading(true);
 
         const response =
-          await productService.getProductById(id);
+          await productService.getProductById(productIdentifier);
 
         const loadedProduct = response.product;
 
@@ -231,7 +232,7 @@ const ProductDetails = () => {
 
       navigate("/login", {
         state: {
-          from: `/products/${id}`,
+          from: `/products/${product?.slug || productIdentifier}`,
           pendingAction: "add-to-cart",
         },
       });
@@ -306,7 +307,7 @@ const ProductDetails = () => {
 
       navigate("/login", {
         state: {
-          from: `/products/${id}`,
+          from: `/products/${product?.slug || productIdentifier}`,
           pendingAction: "customize",
         },
       });

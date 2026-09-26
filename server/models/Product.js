@@ -72,11 +72,23 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    slug: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+      lowercase: true,
+    },
   },
   {
     timestamps: true,
   }
 );
+
+productSchema.index({
+  slug: 1,
+});
 
 productSchema.index({
   isActive: 1,
