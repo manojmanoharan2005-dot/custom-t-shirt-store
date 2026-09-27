@@ -13,7 +13,7 @@ const adminOnly = require("../middleware/adminMiddleware");
 const router = express.Router();
 router.post("/validate", protect, validateCoupon);
 router.post("/", protect, adminOnly, createCoupon);
-router.get("/", protect, adminOnly, getCoupons);
+router.get("/", protect, getCoupons);
 router.put("/:id", protect, adminOnly, updateCoupon);
 router.delete("/:id", protect, adminOnly, deleteCoupon);
 module.exports = router;

@@ -34,6 +34,7 @@ const Checkout = () => {
   const [couponCode, setCouponCode] = useState("");
   const [coupon, setCoupon] = useState(null);
   const [couponLoading, setCouponLoading] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState([]);
 
   const paymentSuccessRef = useRef(false);
   const paymentFailedRef = useRef(false);
@@ -43,9 +44,10 @@ const Checkout = () => {
     try {
       setLoading(true);
 
-      const [cartResponse, profileResponse] = await Promise.all([
+      const [cartResponse, profileResponse, couponsResponse] = await Promise.all([
         cartService.getCart(),
         authService.getProfile(),
+        couponService.getCoupons().catch(() => ({ coupons: [] })),
       ]);
 
       const loadedCart = cartResponse.cart;
@@ -53,6 +55,7 @@ const Checkout = () => {
 
       setCart(loadedCart);
       setUser(loadedUser);
+      setAvailableCoupons(couponsResponse?.coupons || []);
 
       const firstAddress = loadedUser?.addresses?.[0];
 
@@ -940,6 +943,27 @@ const Checkout = () => {
                   >
                     Remove
                   </button>
+                </div>
+              )}
+
+              {!coupon && availableCoupons && availableCoupons.length > 0 && (
+                <div className="mt-4 border-t border-gray-100 pt-3">
+                  <p className="text-xs font-medium text-gray-500">
+                    Available Coupons
+                  </p>
+
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {availableCoupons.map((c) => (
+                      <button
+                        key={c._id || c.code}
+                        type="button"
+                        onClick={() => setCouponCode(c.code)}
+                        className="border border-gray-300 bg-gray-50 px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-gray-800 hover:border-black hover:bg-black hover:text-white"
+                      >
+                        {c.code}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

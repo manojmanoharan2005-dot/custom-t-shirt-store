@@ -101,9 +101,24 @@ const createCoupon = async (req, res) => {
 
 const getCoupons = async (req, res) => {
   try {
-    const coupons = await Coupon.find().sort({
+    let filter = {};
+
+    if (req.user?.role !== "admin") {
+      filter = {
+        isActive: true,
+        expiryDate: { $gt: new Date() },
+      };
+    }
+
+    let coupons = await Coupon.find(filter).sort({
       createdAt: -1,
     });
+
+    if (req.user?.role !== "admin") {
+      coupons = coupons.filter(
+        (c) => !c.usageLimit || (c.usedCount || 0) < c.usageLimit
+      );
+    }
 
     return res.status(200).json({
       coupons,
