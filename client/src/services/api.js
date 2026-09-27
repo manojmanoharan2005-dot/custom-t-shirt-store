@@ -5,7 +5,7 @@ const cleanBaseUrl = rawBaseUrl.replace(/\/+$/, "");
 
 const api = axios.create({
   baseURL: `${cleanBaseUrl}/api`,
-  timeout: 15000,
+  timeout: 60000,
 });
 
 api.interceptors.request.use(
