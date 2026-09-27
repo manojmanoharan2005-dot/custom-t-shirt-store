@@ -92,9 +92,13 @@ const isProductColorAvailable = (product, color) => {
 };
 
 const createCustomization = async (req, res) => {
-  let uploadedPublicId = null;
+  const createdPublicIds = [];
 
   try {
+    let imageUrl = "";
+    let cloudinaryPublicId = "";
+    let originalFileName = "";
+
     const rawBody = req.body || {};
     const product = rawBody.product;
     const size = rawBody.size;
@@ -172,7 +176,6 @@ const createCustomization = async (req, res) => {
     }
 
     const processedUserDesigns = [];
-    const createdPublicIds = [];
 
     if (parsedUserDesignsMeta.length > 0) {
       for (let i = 0; i < parsedUserDesignsMeta.length; i++) {
@@ -421,7 +424,7 @@ const getCustomizationById = async (req, res) => {
 };
 
 const updateCustomization = async (req, res) => {
-  let uploadedPublicId = null;
+  const createdPublicIds = [];
 
   try {
     const { id } = req.params;
@@ -488,7 +491,7 @@ const updateCustomization = async (req, res) => {
 
       customization.imageUrl = uploaded.secure_url;
       customization.cloudinaryPublicId = uploaded.public_id;
-      uploadedPublicId = uploaded.public_id;
+      createdPublicIds.push(uploaded.public_id);
       customization.originalFileName = req.file.originalname || "user-design";
     }
 
@@ -698,6 +701,7 @@ const updateCustomization = async (req, res) => {
           );
           udImageUrl = uploaded.secure_url;
           udPublicId = uploaded.public_id;
+          createdPublicIds.push(uploaded.public_id);
           udOrigName = fileObj.originalname || "user-design";
         }
 
@@ -795,8 +799,10 @@ const updateCustomization = async (req, res) => {
       customization: updatedCustomization,
     });
   } catch (error) {
-    if (uploadedPublicId) {
-      cloudinary.uploader.destroy(uploadedPublicId).catch(() => {});
+    if (createdPublicIds && createdPublicIds.length > 0) {
+      createdPublicIds.forEach((pid) => {
+        cloudinary.uploader.destroy(pid).catch(() => {});
+      });
     }
 
     console.error(
