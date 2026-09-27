@@ -201,20 +201,26 @@ const customizationSchema = new mongoose.Schema(
       },
     ],
 
-    userDesigns: [
-      {
-        id: { type: String },
-        imageUrl: { type: String, trim: true, default: "" },
-        cloudinaryPublicId: { type: String, trim: true, default: "" },
-        originalFileName: { type: String, trim: true, default: "" },
-        userDesignPosition: {
-          x: { type: Number, default: 50, min: 0, max: 100 },
-          y: { type: Number, default: 40, min: 0, max: 100 },
+    userDesigns: {
+      type: [
+        {
+          id: { type: String },
+          imageUrl: { type: String, trim: true, default: "" },
+          cloudinaryPublicId: { type: String, trim: true, default: "" },
+          originalFileName: { type: String, trim: true, default: "" },
+          userDesignPosition: {
+            x: { type: Number, default: 50, min: 0, max: 100 },
+            y: { type: Number, default: 40, min: 0, max: 100 },
+          },
+          userDesignScale: { type: Number, default: 1, min: 0.2, max: 3 },
+          userDesignRotation: { type: Number, default: 0, min: -180, max: 180 },
         },
-        userDesignScale: { type: Number, default: 1, min: 0.2, max: 3 },
-        userDesignRotation: { type: Number, default: 0, min: -180, max: 180 },
-      },
-    ],
+      ],
+      validate: [
+        (v) => !Array.isArray(v) || v.length <= 2,
+        "Maximum 2 user designs allowed",
+      ],
+    },
   },
   {
     timestamps: true,

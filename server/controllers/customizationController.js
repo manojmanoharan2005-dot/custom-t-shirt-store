@@ -166,6 +166,12 @@ const createCustomization = async (req, res) => {
       parsedUserDesignsMeta = [];
     }
 
+    if (parsedUserDesignsMeta.length > 2) {
+      return res.status(400).json({
+        message: "Maximum 2 user uploaded designs allowed.",
+      });
+    }
+
     const filesMap = {};
     if (Array.isArray(req.files)) {
       req.files.forEach((f) => {
@@ -673,6 +679,12 @@ const updateCustomization = async (req, res) => {
       let parsedUserDesignsMeta = parseJSONIfNeeded(rawBody.userDesignsMeta);
       if (!Array.isArray(parsedUserDesignsMeta)) {
         parsedUserDesignsMeta = [];
+      }
+
+      if (parsedUserDesignsMeta.length > 2) {
+        return res.status(400).json({
+          message: "Maximum 2 user uploaded designs allowed.",
+        });
       }
 
       const filesMap = {};

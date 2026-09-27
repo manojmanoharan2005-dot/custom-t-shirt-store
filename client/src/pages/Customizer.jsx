@@ -139,19 +139,26 @@ const Customizer = () => {
 
   // Handler for adding dynamic user design item
   const handleAddUserDesign = () => {
+    if (userDesigns.length >= 2) {
+      showNotification("Maximum 2 uploaded designs allowed.", "warning");
+      return;
+    }
     const newId = `design-${Date.now()}`;
-    setUserDesigns((prev) => [
-      ...prev,
-      {
-        id: newId,
-        file: null,
-        preview: "",
-        scale: 1,
-        rotation: 0,
-        positionX: 50,
-        positionY: Math.min(75, 30 + prev.length * 10),
-      },
-    ]);
+    setUserDesigns((prev) => {
+      if (prev.length >= 2) return prev;
+      return [
+        ...prev,
+        {
+          id: newId,
+          file: null,
+          preview: "",
+          scale: 1,
+          rotation: 0,
+          positionX: 50,
+          positionY: Math.min(75, 30 + prev.length * 10),
+        },
+      ];
+    });
   };
 
   // Handler for selecting an image file for a user design item
@@ -329,7 +336,10 @@ const Customizer = () => {
     }));
   };
 
-  const uploadedFilesCount = userDesigns.filter((ud) => ud.file).length;
+  const uploadedFilesCount = Math.min(
+    2,
+    userDesigns.filter((ud) => ud.file || ud.preview).length
+  );
   let activeDesignName = "None";
   const parts = [];
   if (uploadedFilesCount > 0) {
@@ -969,13 +979,15 @@ const Customizer = () => {
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleAddUserDesign}
-                  className="border border-black bg-black px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-gray-800"
-                >
-                  + Add More
-                </button>
+                {userDesigns.length < 2 && (
+                  <button
+                    type="button"
+                    onClick={handleAddUserDesign}
+                    className="border border-black bg-black px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-gray-800"
+                  >
+                    + Add More
+                  </button>
+                )}
               </div>
 
               <div className="p-5">
